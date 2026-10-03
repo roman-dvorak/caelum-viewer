@@ -1,0 +1,28 @@
+{
+  "title": "All-sky kamery",
+  "cameras": [
+    {
+      "id": "camera01",
+      "name": "Camera 01",
+      "location": { "lat": -23.27, "lon": 16.50, "elevation_m": 1850 },
+      "source": {
+        "type": "s3",
+        "endpoint": "https://s3.example.org",
+        "bucket": "allsky",
+        "prefix": "camera01/"
+      }
+    },
+    {
+      "id": "camera02",
+      "name": "Camera 02",
+      "source": {
+        "type": "http-index",
+        "url": "https://data.example.org/camera02/"
+      },
+      "layout": {
+        "thumbnails": "thumbnails/{YYYY}/{MM}/{DD}/",
+        "raw": "raw/{YYYY}/{MM}/{DD}/"
+      }
+    }
+  ]
+}
