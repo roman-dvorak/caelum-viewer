@@ -60,6 +60,7 @@ export function cameraFromParams(p: ViewParams): CameraConfig | undefined {
       break;
     case "http-index":
     case "caelum-manifest":
+    case "caelum":
       if (!p.source) return undefined;
       source = { type: p.type, url: p.source };
       break;

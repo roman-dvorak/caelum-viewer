@@ -44,5 +44,6 @@ function resolveSource(source: SourceConfig, baseUrl: string): SourceConfig {
     if (source.url) source = { ...source, url: new URL(source.url, baseUrl).toString() };
     return source;
   }
+  if (source.type === "caelum") return source;
   return { ...source, url: new URL(source.url, baseUrl).toString() };
 }

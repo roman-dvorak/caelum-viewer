@@ -1,3 +1,4 @@
+import { CaelumApiDataSource } from "./caelumApi";
 import { CaelumManifestDataSource } from "./caelumManifest";
 import { HttpIndexDataSource } from "./httpIndex";
 import { S3DataSource } from "./s3";
@@ -12,6 +13,8 @@ export function createDataSource(config: SourceConfig): DataSource {
       return new HttpIndexDataSource(config.url);
     case "caelum-manifest":
       return new CaelumManifestDataSource(config.url);
+    case "caelum":
+      return new CaelumApiDataSource(config.url);
     default:
       throw new Error(`Neznámý typ zdroje: ${(config as { type: string }).type}`);
   }
@@ -20,5 +23,6 @@ export function createDataSource(config: SourceConfig): DataSource {
 export const SOURCE_TYPES: { value: SourceConfig["type"]; label: string }[] = [
   { value: "http-index", label: "HTTP index (Apache / nginx / Caddy)" },
   { value: "s3", label: "S3 (ListObjectsV2, veřejné čtení)" },
+  { value: "caelum", label: "Přímo z kamery caelum (IP adresa)" },
   { value: "caelum-manifest", label: "Caelum manifest.json (bez výpisu adresářů)" },
 ];

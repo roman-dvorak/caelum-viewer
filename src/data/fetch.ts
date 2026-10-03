@@ -8,7 +8,7 @@ import { HttpError } from "./types";
 export async function fetchOk(url: string, init?: RequestInit): Promise<Response> {
   let res: Response;
   try {
-    res = await fetch(url, init);
+    res = await fetch(url, { ...localNetworkHint(url), ...init });
   } catch (err) {
     if ((err as Error).name === "AbortError") throw err;
     throw new Error(
@@ -34,4 +34,34 @@ export function encodePath(path: string): string {
     .split("/")
     .map((s) => encodeURIComponent(s))
     .join("/");
+}
+
+/**
+ * Chrome's Local Network Access: a page on https (GitHub Pages) may only
+ * reach a camera on the LAN over plain http when the request declares it is
+ * aimed at the local network; the browser then asks the user once for
+ * permission. Other browsers ignore the unknown option.
+ */
+export function localNetworkHint(url: string): RequestInit {
+  try {
+    const host = new URL(url, location.href).hostname;
+    if (isLocalHost(host)) return { targetAddressSpace: "local" } as RequestInit;
+  } catch {
+    /* relative/invalid URL — no hint */
+  }
+  return {};
+}
+
+export function isLocalHost(host: string): boolean {
+  const h = host.replace(/^\[|\]$/g, "").toLowerCase();
+  return (
+    h.endsWith(".local") ||
+    h.endsWith(".lan") ||
+    /^10\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^169\.254\./.test(h) ||
+    /^f[cd][0-9a-f]{2}:/.test(h) ||
+    h.startsWith("fe80:")
+  );
 }

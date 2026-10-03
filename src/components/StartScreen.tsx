@@ -71,8 +71,14 @@ export function StartScreen({ error }: { error?: string }) {
               </>
             ) : (
               <label>
-                URL adresáře kamery
-                <input required type="url" placeholder="https://data.example.org/camera01/" value={p.source ?? ""} onChange={(e) => set({ source: e.target.value })} />
+                {p.type === "caelum" ? "IP adresa kamery (případně :port)" : "URL adresáře kamery"}
+                <input
+                  required
+                  type={p.type === "caelum" ? "text" : "url"}
+                  placeholder={p.type === "caelum" ? "192.168.1.50" : "https://data.example.org/camera01/"}
+                  value={p.source ?? ""}
+                  onChange={(e) => set({ source: e.target.value })}
+                />
               </label>
             )}
             <label>
@@ -93,6 +99,7 @@ export function StartScreen({ error }: { error?: string }) {
         <h3>Odkazy</h3>
         <code>{example}?catalog=https://example.org/cameras.json</code>
         <code>{example}?type=http-index&amp;source=https://data.example.org/camera01/</code>
+        <code>{example}?type=caelum&amp;source=192.168.1.50</code>
         <code>{example}?type=s3&amp;endpoint=https://s3.example.org&amp;bucket=allsky&amp;prefix=camera01/</code>
         <p className="muted">
           Volitelně <code>&amp;camera=…&amp;date=2026-10-03&amp;time=19:30</code>, <code>&amp;live=1</code>.

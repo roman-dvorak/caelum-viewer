@@ -30,6 +30,7 @@ Přímý zdroj:
 https://roman-dvorak.github.io/caelum-viewer/?type=http-index&source=https://data.example.org/camera01/
 https://roman-dvorak.github.io/caelum-viewer/?type=s3&endpoint=https://s3.example.org&bucket=allsky&prefix=camera01/
 https://roman-dvorak.github.io/caelum-viewer/?type=caelum-manifest&source=https://data.example.org/camera01/
+https://roman-dvorak.github.io/caelum-viewer/?type=caelum&source=192.168.1.50
 ```
 
 Katalog kamer:
@@ -65,6 +66,7 @@ interface DataSource {
 | --- | --- | --- |
 | `s3` | [`S3DataSource`](src/data/s3.ts) | `ListObjectsV2` s `delimiter=/`, stránkování, path-style nebo `style=virtual` |
 | `http-index` | [`HttpIndexDataSource`](src/data/httpIndex.ts) | JSON výpis (nginx `autoindex_format json`, Caddy), jinak parsuje HTML výpis |
+| `caelum` | [`CaelumApiDataSource`](src/data/caelumApi.ts) | přímo z kamery přes její API (`/api/files`); stačí IP, výchozí port 8000 — viz níže |
 | `caelum-manifest` | [`CaelumManifestDataSource`](src/data/caelumManifest.ts) | pro hosting bez výpisu adresářů — čte `manifest.json` + `index.json` z uploaderu caelum (bez RAW) |
 
 Nový zdroj = nová třída implementující `DataSource` + řádek v
@@ -115,6 +117,20 @@ Apache:
     Header set Access-Control-Allow-Origin "https://roman-dvorak.github.io"
 </Directory>
 ```
+
+## Přímo z kamery v lokální síti
+
+`?type=caelum&source=192.168.1.50` (nebo `192.168.1.50:8000`, `allsky.local`, celé URL) čte
+snímky přímo z API kamery. Podmínky:
+
+- kamera povoluje CORS pro origin vieweru — caelum má proměnnou `CAELUM_CORS_ORIGINS`
+  (výchozí `https://roman-dvorak.github.io`),
+- v konfiguraci kamery je `auth.preview_access: "public"` — stránka z jiné domény nedostane
+  přihlašovací cookie kamery,
+- prohlížeč: viewer běží na https, kamera na http. Chrome/Edge to u adres z lokální sítě
+  (10.x, 192.168.x, 172.16–31.x, `*.local`) povolí po jednorázovém potvrzení dotazu
+  „přístup k zařízením v místní síti“. Firefox a Safari takové požadavky blokují (mixed
+  content) — tam je potřeba kameru zpřístupnit přes https.
 
 ## Vývoj
 

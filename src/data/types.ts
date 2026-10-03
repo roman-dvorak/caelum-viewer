@@ -36,7 +36,9 @@ export type SourceConfig =
       style?: "path" | "virtual";
     }
   | { type: "http-index"; url: string }
-  | { type: "caelum-manifest"; url: string };
+  | { type: "caelum-manifest"; url: string }
+  /** A caelum camera's own API; `url` may be a bare IP / host[:port]. */
+  | { type: "caelum"; url: string };
 
 /** Where the date-organized files live, relative to the source root. */
 export interface ArchiveLayout {

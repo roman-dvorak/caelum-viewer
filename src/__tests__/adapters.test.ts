@@ -96,3 +96,35 @@ describe("catalog", () => {
     expect(c.cameras[0]).toMatchObject({ id: "amasc01", source: { type: "caelum-manifest", url: "https://h.org/allsky/amasc01/manifest.json" } });
   });
 });
+
+describe("caelum camera API", async () => {
+  const { CaelumApiDataSource, cameraBaseUrl } = await import("../data/caelumApi");
+  const { isLocalHost } = await import("../data/fetch");
+
+  it("accepts a bare IP address", () => {
+    expect(cameraBaseUrl("192.168.1.50")).toBe("http://192.168.1.50:8000");
+    expect(cameraBaseUrl("192.168.1.50:8080")).toBe("http://192.168.1.50:8080");
+    expect(cameraBaseUrl("allsky.local")).toBe("http://allsky.local:8000");
+    expect(cameraBaseUrl("https://cam.example.org/")).toBe("https://cam.example.org/");
+  });
+
+  it("lists via /api/files and links via /api/files/content", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ path: "thumbnails/2026", entries: [{ name: "10", kind: "dir", size: 0 }, { name: "a.webp", kind: "file", size: 5 }] })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const cam = new CaelumApiDataSource("10.0.0.5");
+    const entries = await cam.list("thumbnails/2026/");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://10.0.0.5:8000/api/files?path=thumbnails%2F2026");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ targetAddressSpace: "local" });
+    expect(entries.map((e) => e.path)).toEqual(["thumbnails/2026/10/", "thumbnails/2026/a.webp"]);
+    expect(cam.url("raw/x.dng")).toBe("http://10.0.0.5:8000/api/files/content?path=raw%2Fx.dng");
+  });
+
+  it("recognizes LAN hosts", () => {
+    expect(isLocalHost("192.168.1.5")).toBe(true);
+    expect(isLocalHost("172.20.0.1")).toBe(true);
+    expect(isLocalHost("cam.local")).toBe(true);
+    expect(isLocalHost("example.org")).toBe(false);
+  });
+});
