@@ -11,6 +11,8 @@ export interface ViewParams {
   prefix?: string;
   style?: string;
   name?: string;
+  /** Link to the camera's own web interface. */
+  link?: string;
   thumbnails?: string;
   raw?: string;
   date?: string;
@@ -20,7 +22,7 @@ export interface ViewParams {
 
 const KEYS: (keyof ViewParams)[] = [
   "catalog", "type", "source", "endpoint", "bucket", "prefix", "style", "name",
-  "thumbnails", "raw", "camera", "date", "time", "live",
+  "link", "thumbnails", "raw", "camera", "date", "time", "live",
 ];
 
 export function readParams(search = location.search): ViewParams {
@@ -67,5 +69,5 @@ export function cameraFromParams(p: ViewParams): CameraConfig | undefined {
   const layout: CameraConfig["layout"] = {};
   if (p.thumbnails) layout.thumbnails = p.thumbnails;
   if (p.raw) layout.raw = p.raw;
-  return { id: "camera", name: p.name ?? "Kamera", source, layout };
+  return { id: "camera", name: p.name ?? "Kamera", link: p.link, source, layout };
 }

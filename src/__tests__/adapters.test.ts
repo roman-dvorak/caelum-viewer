@@ -85,10 +85,10 @@ describe("HTTP index", () => {
 describe("catalog", () => {
   it("normalizes the viewer format and resolves relative URLs", () => {
     const c = normalizeCatalog(
-      { cameras: [{ id: "c2", name: "Camera 02", source: { type: "http-index", url: "camera02/" }, location: { lat: 1 } }] },
+      { cameras: [{ id: "c2", name: "Camera 02", link: "https://cam02.example.org/", source: { type: "http-index", url: "camera02/" }, location: { lat: 1 } }] },
       "https://example.org/cams/cameras.json",
     );
-    expect(c.cameras[0]).toMatchObject({ id: "c2", source: { url: "https://example.org/cams/camera02/" }, location: { lat: 1 } });
+    expect(c.cameras[0]).toMatchObject({ id: "c2", link: "https://cam02.example.org/", source: { url: "https://example.org/cams/camera02/" }, location: { lat: 1 } });
   });
 
   it("accepts caelum's uploader cameras.json", () => {

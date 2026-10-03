@@ -4,6 +4,7 @@
     {
       "id": "camera01",
       "name": "Camera 01",
+      "link": "https://camera01.example.org/",
       "location": { "lat": -23.27, "lon": 16.50, "elevation_m": 1850 },
       "source": {
         "type": "s3",

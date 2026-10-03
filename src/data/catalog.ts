@@ -31,7 +31,8 @@ export function normalizeCatalog(data: Record<string, unknown>, baseUrl: string)
     } else {
       throw new Error(`Kamera „${id}“ v katalogu nemá definovaný zdroj (source).`);
     }
-    return { ...c, id, name, source } as CameraConfig;
+    const link = typeof c.link === "string" ? new URL(c.link, baseUrl).toString() : undefined;
+    return { ...c, id, name, source, link } as CameraConfig;
   });
   if (!cameras.length) throw new Error("Katalog neobsahuje žádné kamery.");
   return { title: typeof data.title === "string" ? data.title : undefined, cameras };

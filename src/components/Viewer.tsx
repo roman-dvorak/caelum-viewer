@@ -283,6 +283,11 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
         ) : (
           <span className="camera-name">{camera.name}</span>
         )}
+        {camera.link && (
+          <a className="btn" href={camera.link} target="_blank" rel="noreferrer" title={camera.link}>
+            Kamera ↗
+          </a>
+        )}
         <div className="date-nav">
           <button disabled={!prevDate} onClick={() => changeDate(prevDate)} title="Předchozí den s daty">
             <Icon name="prev" />

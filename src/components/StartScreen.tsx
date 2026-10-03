@@ -12,7 +12,7 @@ export function StartScreen({ error }: { error?: string }) {
     const params: ViewParams =
       mode === "catalog"
         ? { catalog: p.catalog }
-        : { type: p.type, source: p.source, endpoint: p.endpoint, bucket: p.bucket, prefix: p.prefix, name: p.name };
+        : { type: p.type, source: p.source, endpoint: p.endpoint, bucket: p.bucket, prefix: p.prefix, name: p.name, link: p.link };
     location.search = buildSearch(params);
   };
 
@@ -78,6 +78,10 @@ export function StartScreen({ error }: { error?: string }) {
             <label>
               Název (nepovinné)
               <input value={p.name ?? ""} onChange={(e) => set({ name: e.target.value })} />
+            </label>
+            <label>
+              Odkaz na kameru (nepovinné)
+              <input type="url" placeholder="http://allsky.local:8000/" value={p.link ?? ""} onChange={(e) => set({ link: e.target.value })} />
             </label>
           </>
         )}

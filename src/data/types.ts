@@ -56,6 +56,8 @@ export interface CameraConfig {
   name: string;
   source: SourceConfig;
   layout?: Partial<ArchiveLayout>;
+  /** The camera's own web interface (live view, settings), shown as a link. */
+  link?: string;
   /** Free-form station metadata (location, description, ...). */
   [extra: string]: unknown;
 }

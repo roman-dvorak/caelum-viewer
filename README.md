@@ -39,12 +39,12 @@ https://roman-dvorak.github.io/caelum-viewer/?catalog=https://example.org/camera
 ```
 
 Další parametry: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
-`name=<název>` (u přímého zdroje), `thumbnails=` / `raw=` (šablona rozložení, viz níže).
+`name=<název>` a `link=<URL webového rozhraní kamery>` (u přímého zdroje), `thumbnails=` / `raw=` (šablona rozložení, viz níže).
 
 ### Katalog
 
 Viz [`public/examples/cameras.json`](public/examples/cameras.json). Každá kamera má `id`,
-`name`, `source` a volitelně `layout` a libovolná další metadata stanice. Relativní URL se
+`name`, `source` a volitelně `link` (odkaz na webové rozhraní kamery, v liště jako „Kamera ↗“), `layout` a libovolná další metadata stanice. Relativní URL se
 vyhodnocují vůči URL katalogu. Přijímá se i `cameras.json`, který generuje uploader caelum
 (`{cameras:[{slug,name,manifest}]}`).
 
