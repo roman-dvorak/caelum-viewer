@@ -27,15 +27,15 @@ Klávesy: `←/→` (se Shiftem po 10), `Home/End`, mezerník = přehrávání, 
 Přímý zdroj:
 
 ```
-https://<účet>.github.io/caelum-viewer/?type=http-index&source=https://data.example.org/camera01/
-https://<účet>.github.io/caelum-viewer/?type=s3&endpoint=https://s3.example.org&bucket=allsky&prefix=camera01/
-https://<účet>.github.io/caelum-viewer/?type=caelum-manifest&source=https://data.example.org/camera01/
+https://roman-dvorak.github.io/caelum-viewer/?type=http-index&source=https://data.example.org/camera01/
+https://roman-dvorak.github.io/caelum-viewer/?type=s3&endpoint=https://s3.example.org&bucket=allsky&prefix=camera01/
+https://roman-dvorak.github.io/caelum-viewer/?type=caelum-manifest&source=https://data.example.org/camera01/
 ```
 
 Katalog kamer:
 
 ```
-https://<účet>.github.io/caelum-viewer/?catalog=https://example.org/cameras.json
+https://roman-dvorak.github.io/caelum-viewer/?catalog=https://example.org/cameras.json
 ```
 
 Další parametry: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
@@ -92,7 +92,7 @@ Data jsou na jiné doméně než viewer, server proto musí posílat CORS hlavi�
 S3 (`aws s3api put-bucket-cors --bucket allsky --cors-configuration file://cors.json`):
 
 ```json
-{ "CORSRules": [{ "AllowedOrigins": ["https://<účet>.github.io"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600 }] }
+{ "CORSRules": [{ "AllowedOrigins": ["https://roman-dvorak.github.io"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600 }] }
 ```
 
 Bucket musí povolit anonymní `s3:ListBucket` i `s3:GetObject`.
@@ -103,7 +103,7 @@ nginx:
 location /allsky/ {
     autoindex on;
     autoindex_format json;          # strojově čitelný výpis (doporučeno)
-    add_header Access-Control-Allow-Origin "https://<účet>.github.io" always;
+    add_header Access-Control-Allow-Origin "https://roman-dvorak.github.io" always;
 }
 ```
 
@@ -112,7 +112,7 @@ Apache:
 ```apache
 <Directory /var/www/allsky>
     Options +Indexes
-    Header set Access-Control-Allow-Origin "https://<účet>.github.io"
+    Header set Access-Control-Allow-Origin "https://roman-dvorak.github.io"
 </Directory>
 ```
 
