@@ -1,5 +1,6 @@
 import { fetchJson } from "./fetch";
 import type { CameraConfig, SourceConfig } from "./types";
+import { t } from "../lib/i18n";
 
 export interface Catalog {
   title?: string;
@@ -29,12 +30,12 @@ export function normalizeCatalog(data: Record<string, unknown>, baseUrl: string)
     } else if (typeof c.manifest === "string") {
       source = { type: "caelum-manifest", url: new URL(c.manifest, baseUrl).toString() };
     } else {
-      throw new Error(`Kamera „${id}“ v katalogu nemá definovaný zdroj (source).`);
+      throw new Error(t("err.noSource", { id }));
     }
     const link = typeof c.link === "string" ? new URL(c.link, baseUrl).toString() : undefined;
     return { ...c, id, name, source, link } as CameraConfig;
   });
-  if (!cameras.length) throw new Error("Katalog neobsahuje žádné kamery.");
+  if (!cameras.length) throw new Error(t("err.emptyCatalog"));
   return { title: typeof data.title === "string" ? data.title : undefined, cameras };
 }
 

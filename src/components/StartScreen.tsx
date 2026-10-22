@@ -1,40 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { SOURCE_TYPES } from "../data/factory";
 import { DEVELOPER_NAME, DEVELOPER_URL, DOCS_URL, REPO_URL, VIEWER_DOCS_URL } from "../lib/brand";
-import { ago, clearRecent, forgetSource, loadRecent, type RecentSource } from "../lib/recent";
+import { ago, t, tMaybe } from "../lib/i18n";
+import { clearRecent, forgetSource, loadRecent, type RecentSource } from "../lib/recent";
 import { buildSearch, type ViewParams } from "../lib/urlState";
+import { LangSwitch } from "./LangSwitch";
 
-const SOURCE_TEXT: Record<string, [string, string]> = {
-  "http-index": ["HTTP index", "Adresář na webovém serveru s výpisem souborů (Apache / nginx / Caddy)."],
-  s3: ["S3", "Veřejně čitelný bucket, výpis přes ListObjectsV2."],
-  caelum: ["Kamera caelum", "Čtení přímo z kamery v lokální síti podle IP adresy."],
-  "caelum-manifest": ["Caelum manifest", "manifest.json z uploaderu caelum, bez výpisu adresářů."],
-};
+const FEATURES = ["timeline", "timelapse", "live", "charts", "filters", "raw"] as const;
 
-const KIND_LABELS: Record<string, string> = {
-  catalog: "katalog",
-  "http-index": "http",
-  s3: "s3",
-  caelum: "kamera",
-  "caelum-manifest": "manifest",
-};
-
-const FEATURES: [string, string][] = [
-  ["Časová osa 24 h UTC", "obarvená podle fáze dne — den, soumraky, noc"],
-  ["Time-lapse", "přehrávání 2–30 snímků/s s předběžným načítáním"],
-  ["Live", "každých 30 s nejnovější snímek z kamery"],
-  ["Grafy metadat", "expozice, gain, Slunce, Měsíc — se synchronizovaným kurzorem"],
-  ["Filtry", "fáze dne, rozsahy hodnot, dostupnost RAW"],
-  ["RAW", "stažení původního DNG a JSON metadat"],
-];
-
-const KEYS: [string, string][] = [
-  ["← →", "snímek (Shift po 10)"],
-  ["Mezerník", "přehrávání"],
-  ["L", "live"],
-  ["F", "fullscreen"],
-  ["+ − 0", "zoom"],
-  ["O", "overlay"],
+const KEYS: [string, Parameters<typeof t>[0]][] = [
+  ["← →", "key.frame"],
+  ["Space", "key.play"],
+  ["L", "key.live"],
+  ["F", "key.fullscreen"],
+  ["+ − 0", "key.zoom"],
+  ["O", "key.overlay"],
 ];
 
 export function StartScreen({ error }: { error?: string }) {
@@ -60,11 +40,12 @@ export function StartScreen({ error }: { error?: string }) {
         <Starfield />
         <nav className="hero-nav">
           <a href={DOCS_URL} target="_blank" rel="noreferrer">
-            Dokumentace
+            {t("start.docs")}
           </a>
           <a href={DEVELOPER_URL} target="_blank" rel="noreferrer">
             {DEVELOPER_NAME}
           </a>
+          <LangSwitch />
         </nav>
         <div className="hero-content">
           <a className="eyebrow" href={DEVELOPER_URL} target="_blank" rel="noreferrer">
@@ -73,7 +54,7 @@ export function StartScreen({ error }: { error?: string }) {
           <h1 className="wordmark">
             caelum <span>viewer</span>
           </h1>
-          <p className="tagline">Archiv all-sky kamer přímo v prohlížeči</p>
+          <p className="tagline">{t("start.tagline")}</p>
         </div>
         <div className="horizon" />
       </header>
@@ -85,16 +66,16 @@ export function StartScreen({ error }: { error?: string }) {
           {recent.length > 0 && (
             <section className="panel">
               <div className="panel-head">
-                <h2>Naposledy navštívené kamery</h2>
+                <h2>{t("start.recent")}</h2>
                 <button type="button" className="link small" onClick={() => setRecent(clearRecent())}>
-                  Vymazat
+                  {t("start.recentClear")}
                 </button>
               </div>
               <ul className="recent">
                 {recent.map((r) => (
                   <li key={r.search}>
                     <a href={r.search}>
-                      <span className="tag">{KIND_LABELS[r.kind] ?? r.kind}</span>
+                      <span className="tag">{kindLabel(r.kind)}</span>
                       <span className="recent-label">
                         {r.label}
                         {r.catalog && <span className="recent-catalog"> · {r.catalog}</span>}
@@ -102,7 +83,7 @@ export function StartScreen({ error }: { error?: string }) {
                       <span className="recent-src">{describe(r.search)}</span>
                       <span className="recent-ago">{ago(r.at)}</span>
                     </a>
-                    <button type="button" className="link" title="Odebrat ze seznamu" onClick={() => setRecent(forgetSource(r.search))}>
+                    <button type="button" className="link" title={t("start.recentRemove")} onClick={() => setRecent(forgetSource(r.search))}>
                       ×
                     </button>
                   </li>
@@ -112,54 +93,54 @@ export function StartScreen({ error }: { error?: string }) {
           )}
 
           <form onSubmit={submit} className="panel open-form">
-            <h2>{recent.length ? "Otevřít jiný zdroj" : "Otevřít zdroj dat"}</h2>
+            <h2>{recent.length ? t("start.openOther") : t("start.open")}</h2>
             <div className="segmented" role="tablist">
               <button type="button" role="tab" aria-selected={mode === "catalog"} className={mode === "catalog" ? "on" : ""} onClick={() => setMode("catalog")}>
-                Katalog kamer
+                {t("start.modeCatalog")}
               </button>
               <button type="button" role="tab" aria-selected={mode === "direct"} className={mode === "direct" ? "on" : ""} onClick={() => setMode("direct")}>
-                Přímý zdroj
+                {t("start.modeDirect")}
               </button>
             </div>
 
             {mode === "catalog" ? (
               <label>
-                URL katalogu (JSON)
+                {t("start.catalogUrl")}
                 <input required type="url" placeholder="https://example.org/cameras.json" value={p.catalog ?? ""} onChange={(e) => set({ catalog: e.target.value })} />
                 <span className="hint">
-                  Seznam kamer se zdroji a metadaty stanic — viz <a href="./examples/cameras.json">příklad</a>.
+                  {t("start.catalogHint")} <a href="./examples/cameras.json">{t("start.catalogExample")}</a>.
                 </span>
               </label>
             ) : (
               <>
                 <fieldset className="source-types">
-                  <legend>Typ zdroje</legend>
-                  {SOURCE_TYPES.map((t) => (
-                    <label key={t.value} className={`source-type${p.type === t.value ? " on" : ""}`}>
-                      <input type="radio" name="type" value={t.value} checked={p.type === t.value} onChange={() => set({ type: t.value })} />
-                      <span className="source-type-label">{SOURCE_TEXT[t.value]?.[0] ?? t.label}</span>
-                      <span className="hint">{SOURCE_TEXT[t.value]?.[1]}</span>
+                  <legend>{t("start.sourceType")}</legend>
+                  {SOURCE_TYPES.map((st) => (
+                    <label key={st.value} className={`source-type${p.type === st.value ? " on" : ""}`}>
+                      <input type="radio" name="type" value={st.value} checked={p.type === st.value} onChange={() => set({ type: st.value })} />
+                      <span className="source-type-label">{t(`source.${st.value}`)}</span>
+                      <span className="hint">{t(`source.${st.value}.hint`)}</span>
                     </label>
                   ))}
                 </fieldset>
                 {p.type === "s3" ? (
                   <div className="field-grid">
                     <label className="span-2">
-                      Endpoint
+                      {t("start.endpoint")}
                       <input required type="url" placeholder="https://s3.example.org" value={p.endpoint ?? ""} onChange={(e) => set({ endpoint: e.target.value })} />
                     </label>
                     <label>
-                      Bucket
+                      {t("start.bucket")}
                       <input required placeholder="allsky" value={p.bucket ?? ""} onChange={(e) => set({ bucket: e.target.value })} />
                     </label>
                     <label>
-                      Prefix
+                      {t("start.prefix")}
                       <input placeholder="camera01/" value={p.prefix ?? ""} onChange={(e) => set({ prefix: e.target.value })} />
                     </label>
                   </div>
                 ) : (
                   <label>
-                    {p.type === "caelum" ? "IP adresa kamery (případně :port)" : "URL adresáře kamery"}
+                    {p.type === "caelum" ? t("start.cameraIp") : t("start.directoryUrl")}
                     <input
                       required
                       type={p.type === "caelum" ? "text" : "url"}
@@ -172,13 +153,13 @@ export function StartScreen({ error }: { error?: string }) {
                 <div className="field-grid">
                   <label>
                     <span>
-                      Název <span className="optional">· nepovinné</span>
+                      {t("start.name")} <span className="optional">· {t("start.optional")}</span>
                     </span>
                     <input value={p.name ?? ""} onChange={(e) => set({ name: e.target.value })} />
                   </label>
                   <label>
                     <span>
-                      Odkaz na kameru <span className="optional">· nepovinné</span>
+                      {t("start.cameraLink")} <span className="optional">· {t("start.optional")}</span>
                     </span>
                     <input type="url" placeholder="http://allsky.local:8000/" value={p.link ?? ""} onChange={(e) => set({ link: e.target.value })} />
                   </label>
@@ -186,64 +167,64 @@ export function StartScreen({ error }: { error?: string }) {
               </>
             )}
             <div className="form-foot">
-              <span className="hint">Data se čtou přímo ze zdroje — server musí povolit CORS.</span>
+              <span className="hint">{t("start.cors")}</span>
               <button className="btn primary" type="submit">
-                Otevřít
+                {t("start.submit")}
               </button>
             </div>
           </form>
 
           {recent.length === 0 && (
-            <p className="hint recent-empty">Kamery, které otevřete, se tu příště objeví v seznamu naposledy navštívených.</p>
+            <p className="hint recent-empty">{t("start.recentEmpty")}</p>
           )}
 
         </div>
 
         <aside className="start-side">
           <section>
-            <h2>Dokumentace</h2>
+            <h2>{t("start.docs")}</h2>
             <ul className="doc-links">
               <li>
                 <a href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
                   Caelum Viewer <span>↗</span>
                 </a>
-                <span className="hint">zdroje dat, katalog, parametry URL</span>
+                <span className="hint">{t("start.docsViewer")}</span>
               </li>
               <li>
                 <a href={DOCS_URL} target="_blank" rel="noreferrer">
                   Caelum <span>↗</span>
                 </a>
-                <span className="hint">software all-sky kamery — instalace, nahrávání dat</span>
+                <span className="hint">{t("start.docsCaelum")}</span>
               </li>
               <li>
                 <a href={DEVELOPER_URL} target="_blank" rel="noreferrer">
                   {DEVELOPER_NAME} <span>↗</span>
                 </a>
-                <span className="hint">kamery a příslušenství</span>
+                <span className="hint">{t("start.docsDeveloper")}</span>
               </li>
             </ul>
           </section>
           <section>
-            <h2>Co umí</h2>
+            <h2>{t("start.features")}</h2>
             <ul className="features">
-              {FEATURES.map(([title, text]) => (
-                <li key={title}>
-                  <strong>{title}</strong> <span>{text}</span>
+              {FEATURES.map((f) => (
+                <li key={f}>
+                  <strong>{t(`feature.${f}`)}</strong> <span>{t(`feature.${f}.text`)}</span>
                 </li>
               ))}
             </ul>
           </section>
           <section>
-            <h2>Klávesy</h2>
+            <h2>{t("start.keys")}</h2>
             <dl className="keys">
               {KEYS.map(([k, v]) => (
                 <div key={k}>
                   <dt>
                     {k.split(" ").map((x) => (
-                      <kbd key={x}>{x}</kbd>
+                      <kbd key={x}>{x === "Space" ? t("key.space") : x}</kbd>
                     ))}
                   </dt>
-                  <dd>{v}</dd>
+                  <dd>{t(v)}</dd>
                 </div>
               ))}
             </dl>
@@ -252,9 +233,9 @@ export function StartScreen({ error }: { error?: string }) {
       </div>
 
       <section className="start-links panel">
-        <h2>Odkazy</h2>
+        <h2>{t("start.links")}</h2>
         <p className="hint">
-          Stav pohledu je v URL — odkaz lze uložit nebo sdílet. Volitelně <code>&amp;camera=…</code> <code>&amp;date=2026-10-03</code>{" "}
+          {t("start.linksHint")} <code>&amp;camera=…</code> <code>&amp;date=2026-10-03</code>{" "}
           <code>&amp;time=19:30</code> <code>&amp;live=1</code>.
         </p>
         <CopyLine text={`${base}?catalog=https://example.org/cameras.json`} />
@@ -264,11 +245,16 @@ export function StartScreen({ error }: { error?: string }) {
       </section>
 
       <footer className="start-foot">
-        <a href={DOCS_URL}>Dokumentace</a> · <a href={REPO_URL}>GitHub</a> · statická aplikace bez backendu ·{" "}
+        <a href={DOCS_URL}>{t("start.docs")}</a> · <a href={REPO_URL}>GitHub</a> · {t("start.footer")} ·{" "}
         <a href={DEVELOPER_URL}>{DEVELOPER_NAME}</a>
       </footer>
     </div>
   );
+}
+
+function kindLabel(kind: string): string {
+  const key = `kind.${kind}`;
+  return tMaybe(key) ?? kind;
 }
 
 /** Short human description of a stored query string. */
@@ -289,8 +275,8 @@ function CopyLine({ text }: { text: string }) {
   return (
     <div className="copy-line">
       <code>{text}</code>
-      <button type="button" onClick={copy} title="Zkopírovat">
-        {copied ? "Zkopírováno" : "Kopírovat"}
+      <button type="button" onClick={copy} title={t("start.copy")}>
+        {copied ? t("start.copied") : t("start.copy")}
       </button>
     </div>
   );

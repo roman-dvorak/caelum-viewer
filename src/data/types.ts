@@ -1,3 +1,5 @@
+import { t } from "../lib/i18n";
+
 /** One item of a directory-like listing, independent of where it came from. */
 export interface Entry {
   /** Base name without a trailing slash. */
@@ -69,6 +71,6 @@ export class HttpError extends Error {
     public readonly url: string,
     public readonly status: number,
   ) {
-    super(`HTTP ${status} při načítání ${url}`);
+    super(t("err.http", { status, url }));
   }
 }

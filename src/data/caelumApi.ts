@@ -1,5 +1,6 @@
 import { fetchOk, withTrailingSlash } from "./fetch";
 import type { DataSource, Entry } from "./types";
+import { t } from "../lib/i18n";
 
 interface ApiListing {
   entries: { name: string; kind: "dir" | "file"; size?: number; modified_at?: string }[];
@@ -20,7 +21,7 @@ export class CaelumApiDataSource implements DataSource {
 
   constructor(address: string) {
     this.base = withTrailingSlash(cameraBaseUrl(address));
-    this.label = `kamera: ${this.base}`;
+    this.label = t("data.cameraLabel", { url: this.base });
   }
 
   url(path: string): string {

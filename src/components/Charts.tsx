@@ -3,6 +3,7 @@ import uPlot from "uplot";
 import "uplot/dist/uPlot.min.css";
 import type { Frame, FrameMeta } from "../data/archive";
 import { fieldInfo, formatValue, numericFields } from "../lib/metadata";
+import { t } from "../lib/i18n";
 
 interface Props {
   frames: Frame[];
@@ -61,18 +62,18 @@ export function Charts({ frames, metaMap, fields, available, currentId, onSelect
   return (
     <div className="charts">
       <div className="charts-toolbar">
-        <span className="muted">Grafy:</span>
+        <span className="muted">{t("viewer.charts")}:</span>
         {fields.map((k) => (
           <span key={k} className="chip">
             {fieldInfo(k).label}
-            <button title="Odebrat" onClick={() => onFieldsChange(fields.filter((f) => f !== k))}>×</button>
+            <button title={t("charts.remove")} onClick={() => onFieldsChange(fields.filter((f) => f !== k))}>×</button>
           </span>
         ))}
         <select
           value=""
           onChange={(e) => e.target.value && onFieldsChange([...fields, e.target.value])}
         >
-          <option value="">+ přidat veličinu…</option>
+          <option value="">{t("charts.add")}</option>
           {available
             .filter((k) => !fields.includes(k))
             .map((k) => (
@@ -82,7 +83,7 @@ export function Charts({ frames, metaMap, fields, available, currentId, onSelect
             ))}
         </select>
       </div>
-      {!xs.length && <div className="muted pad">Načítám metadata…</div>}
+      {!xs.length && <div className="muted pad">{t("meta.loading")}</div>}
       {xs.length > 0 &&
         fields.map((k, i) => (
           <Chart

@@ -2,6 +2,7 @@ import type { DataSource } from "../data/types";
 import type { Frame, FrameMeta } from "../data/archive";
 import { fieldInfo, flattenAll } from "../lib/metadata";
 import { utcDate, utcTime } from "../lib/time";
+import { t } from "../lib/i18n";
 
 interface Props {
   frame?: Frame;
@@ -25,7 +26,7 @@ export function MetadataPanel({ frame, meta, source }: Props) {
         )}
         {frame.thumb && (
           <a className="btn" href={source.url(frame.thumb)} target="_blank" rel="noreferrer">
-            Náhled
+            {t("meta.preview")}
           </a>
         )}
         {(frame.meta || frame.rawMeta) && (
@@ -46,7 +47,7 @@ export function MetadataPanel({ frame, meta, source }: Props) {
           </tbody>
         </table>
       ) : (
-        <div className="muted small">{frame.meta || frame.rawMeta ? "Načítám metadata…" : "Bez metadat"}</div>
+        <div className="muted small">{frame.meta || frame.rawMeta ? t("meta.loading") : t("meta.none")}</div>
       )}
     </section>
   );

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ago, clearRecent, forgetSource, loadRecent, rememberCamera } from "../lib/recent";
+import { clearRecent, forgetSource, loadRecent, rememberCamera } from "../lib/recent";
 
 describe("recent cameras", () => {
   beforeEach(() => localStorage.clear());
@@ -21,13 +21,5 @@ describe("recent cameras", () => {
     expect(forgetSource("?type=caelum&source=a").map((r) => r.label)).toEqual(["B"]);
     expect(clearRecent()).toEqual([]);
     expect(loadRecent()).toEqual([]);
-  });
-
-  it("formats coarse ages", () => {
-    const now = Date.parse("2026-10-22T12:00:00Z");
-    expect(ago(now - 10_000, now)).toBe("právě teď");
-    expect(ago(now - 5 * 60_000, now)).toBe("před 5 min");
-    expect(ago(now - 3 * 3_600_000, now)).toBe("před 3 h");
-    expect(ago(now - 26 * 3_600_000, now)).toBe("včera");
   });
 });

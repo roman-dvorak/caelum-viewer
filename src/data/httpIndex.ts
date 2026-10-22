@@ -1,5 +1,6 @@
 import { encodePath, fetchOk, withTrailingSlash } from "./fetch";
 import type { DataSource, Entry } from "./types";
+import { t } from "../lib/i18n";
 
 /**
  * A plain web server directory listing (Apache mod_autoindex, nginx
@@ -49,7 +50,7 @@ export function parseJsonListing(text: string): RawEntry[] {
     const o = data as Record<string, unknown>;
     data = o.entries ?? o.files ?? o.items ?? o.children ?? [];
   }
-  if (!Array.isArray(data)) throw new Error("Neznámý formát JSON výpisu adresáře.");
+  if (!Array.isArray(data)) throw new Error(t("err.indexFormat"));
   const out: RawEntry[] = [];
   for (const item of data as Record<string, unknown>[]) {
     let name = String(item.name ?? item.path ?? "");

@@ -4,6 +4,7 @@ import { Icon } from "./Icon";
 import { useLoadedImage } from "../lib/hooks";
 import { formatValue, numericFields, PERIODS, skyPeriod } from "../lib/metadata";
 import { utcDate, utcTime } from "../lib/time";
+import { t } from "../lib/i18n";
 
 interface Props {
   frame?: Frame;
@@ -98,9 +99,9 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }:
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         />
       ) : (
-        <div className="viewer-empty">{frame ? (frame.thumb ? "" : "Snímek nemá náhled (jen RAW)") : "Žádný snímek"}</div>
+        <div className="viewer-empty">{frame ? (frame.thumb ? "" : t("viewer.noPreview")) : t("viewer.noFrame")}</div>
       )}
-      {error && <div className="viewer-msg">Náhled se nepodařilo načíst</div>}
+      {error && <div className="viewer-msg">{t("viewer.previewFailed")}</div>}
       {loading && <div className="viewer-spinner" />}
 
       {showOverlay && frame && (
@@ -130,12 +131,12 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }:
       )}
 
       <div className="viewer-tools" onPointerDown={(e) => e.stopPropagation()} onDoubleClick={(e) => e.stopPropagation()}>
-        <button title="Přiblížit (+)" onClick={() => zoomAt(1.5, 0, 0)}><Icon name="plus" /></button>
-        <button title="Oddálit (−)" onClick={() => zoomAt(1 / 1.5, 0, 0)}><Icon name="minus" /></button>
-        <button title="Původní velikost (0)" onClick={() => setView(RESET)} disabled={view.scale === 1}>
+        <button title={t("viewer.zoomIn")} onClick={() => zoomAt(1.5, 0, 0)}><Icon name="plus" /></button>
+        <button title={t("viewer.zoomOut")} onClick={() => zoomAt(1 / 1.5, 0, 0)}><Icon name="minus" /></button>
+        <button title={t("viewer.zoomReset")} onClick={() => setView(RESET)} disabled={view.scale === 1}>
           {Math.round(view.scale * 100)} %
         </button>
-        <button title="Celá obrazovka (F)" onClick={toggleFullscreen}><Icon name="fullscreen" /></button>
+        <button title={t("viewer.fullscreen")} onClick={toggleFullscreen}><Icon name="fullscreen" /></button>
       </div>
     </div>
   );

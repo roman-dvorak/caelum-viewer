@@ -1,4 +1,5 @@
 import type { FrameMeta } from "../data/archive";
+import { t, tMaybe } from "./i18n";
 
 export interface FieldInfo {
   label: string;
@@ -34,7 +35,9 @@ export const DEFAULT_CHART_FIELDS = [
 ];
 
 export function fieldInfo(key: string): FieldInfo {
-  return KNOWN_FIELDS[key] ?? { label: key };
+  const known = KNOWN_FIELDS[key];
+  const label = tMaybe(`field.${key}`) ?? known?.label ?? key;
+  return { ...known, label };
 }
 
 export function formatValue(key: string, v: number | undefined): string {
@@ -68,11 +71,11 @@ export function skyPeriod(meta: FrameMeta | undefined): string | undefined {
 
 export const PERIODS: Record<string, { label: string; color: string }> = {
   // Caelum palette, ordered by lightness so the phases stay apart without hue.
-  day: { label: "Den", color: "#f5c96a" },
-  civil_twilight: { label: "Občanský soumrak", color: "#e8a13a" },
-  nautical_twilight: { label: "Nautický soumrak", color: "#5a8ee8" },
-  astronomical_twilight: { label: "Astronomický soumrak", color: "#2a4a8a" },
-  night: { label: "Noc", color: "#1c305c" },
+  day: { get label() { return t("period.day"); }, color: "#f5c96a" },
+  civil_twilight: { get label() { return t("period.civil_twilight"); }, color: "#e8a13a" },
+  nautical_twilight: { get label() { return t("period.nautical_twilight"); }, color: "#5a8ee8" },
+  astronomical_twilight: { get label() { return t("period.astronomical_twilight"); }, color: "#2a4a8a" },
+  night: { get label() { return t("period.night"); }, color: "#1c305c" },
 };
 
 export function periodColor(period: string | undefined): string {

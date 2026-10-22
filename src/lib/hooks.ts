@@ -5,12 +5,13 @@ const METADATA_CONCURRENCY = 8;
 const FLUSH_MS = 250;
 
 /**
- * Loads sidecar metadata for `frames` in the background with bounded
+ * Loads sidecar metadata for `wanted` frames in the background with bounded
  * concurrency, publishing results in batches so charts fill in
  * progressively without a re-render per file. Already-loaded entries are
- * kept, so live polling only fetches the new frames.
+ * kept, so widening `wanted` (e.g. from the frames around the current one to
+ * the whole day) or live polling only fetches what is new.
  */
-export function useMetadata(archive: CameraArchive, frames: Frame[]) {
+export function useMetadata(archive: CameraArchive, wanted: Frame[]) {
   const store = useRef(new Map<string, FrameMeta>());
   const [metaMap, setMetaMap] = useState<Map<string, FrameMeta>>(() => new Map());
   const [pending, setPending] = useState(0);
@@ -22,15 +23,21 @@ export function useMetadata(archive: CameraArchive, frames: Frame[]) {
 
   useEffect(() => {
     let cancelled = false;
-    const queue = frames.filter((f) => (f.meta || f.rawMeta) && !store.current.has(f.id));
+    // Results land in this archive's map even after a restart, so an
+    // in-flight request is never wasted; a new archive gets a new map.
+    const target = store.current;
+    const queue = wanted.filter((f) => (f.meta || f.rawMeta) && !target.has(f.id));
     let remaining = queue.length;
     setPending(remaining);
     if (!remaining) return;
     let dirty = false;
+    const publish = () => {
+      if (store.current === target) setMetaMap(new Map(target));
+    };
     const timer = setInterval(() => {
       if (dirty && !cancelled) {
         dirty = false;
-        setMetaMap(new Map(store.current));
+        publish();
         setPending(remaining);
       }
     }, FLUSH_MS);
@@ -39,7 +46,7 @@ export function useMetadata(archive: CameraArchive, frames: Frame[]) {
         const frame = queue.shift()!;
         try {
           const meta = await archive.metadata(frame);
-          if (meta && !cancelled) store.current.set(frame.id, meta);
+          if (meta) target.set(frame.id, meta);
         } catch {
           // A single broken sidecar shouldn't stop the rest.
         }
@@ -47,17 +54,16 @@ export function useMetadata(archive: CameraArchive, frames: Frame[]) {
         dirty = true;
       }
     };
-    Promise.all(Array.from({ length: METADATA_CONCURRENCY }, worker)).then(() => {
-      if (cancelled) return;
+    Promise.all(Array.from({ length: Math.min(METADATA_CONCURRENCY, queue.length) }, worker)).then(() => {
       clearInterval(timer);
-      setMetaMap(new Map(store.current));
-      setPending(0);
+      publish();
+      if (!cancelled) setPending(0);
     });
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [archive, frames]);
+  }, [archive, wanted]);
 
   return { metaMap, pending };
 }

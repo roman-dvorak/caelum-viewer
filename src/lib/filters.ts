@@ -20,6 +20,11 @@ export function isFiltering(f: Filters): boolean {
   return f.periods.length > 0 || f.rawOnly || f.rules.some((r) => r.min !== undefined || r.max !== undefined);
 }
 
+/** Filters that can only be evaluated with every frame's metadata loaded. */
+export function needsMetadata(f: Filters): boolean {
+  return f.periods.length > 0 || f.rules.length > 0;
+}
+
 /** Frames whose metadata isn't known (yet) fail any metadata-based filter. */
 export function applyFilters(frames: Frame[], metaMap: Map<string, FrameMeta>, f: Filters): Frame[] {
   if (!isFiltering(f)) return frames;

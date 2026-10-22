@@ -1,4 +1,5 @@
 import type { CameraConfig, SourceConfig } from "../data/types";
+import { t } from "./i18n";
 
 /** Everything the viewer keeps in the query string, so a view can be bookmarked. */
 export interface ViewParams {
@@ -70,5 +71,5 @@ export function cameraFromParams(p: ViewParams): CameraConfig | undefined {
   const layout: CameraConfig["layout"] = {};
   if (p.thumbnails) layout.thumbnails = p.thumbnails;
   if (p.raw) layout.raw = p.raw;
-  return { id: "camera", name: p.name ?? "Kamera", link: p.link, source, layout };
+  return { id: "camera", name: p.name ?? t("data.camera"), link: p.link, source, layout };
 }

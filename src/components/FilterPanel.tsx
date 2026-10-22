@@ -1,18 +1,22 @@
 import type { Filters } from "../lib/filters";
 import { NO_FILTERS, isFiltering } from "../lib/filters";
 import { fieldInfo, PERIODS } from "../lib/metadata";
+import { t, tn } from "../lib/i18n";
 
 interface Props {
   filters: Filters;
   available: string[];
   total: number;
   shown: number;
+  /** Whether the whole day's metadata is loaded ("off" = not requested yet). */
+  metaStatus: "off" | "loading" | "done";
+  onLoadMetadata: () => void;
   onChange: (f: Filters) => void;
 }
 
 const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? undefined : Number(s));
 
-export function FilterPanel({ filters, available, total, shown, onChange }: Props) {
+export function FilterPanel({ filters, available, total, shown, metaStatus, onLoadMetadata, onChange }: Props) {
   const togglePeriod = (p: string) =>
     onChange({
       ...filters,
@@ -22,16 +26,22 @@ export function FilterPanel({ filters, available, total, shown, onChange }: Prop
   return (
     <section className="panel">
       <h3>
-        Filtr
+        {t("filter.title")}
         <span className="muted small">
-          {shown} / {total} snímků
+          {shown} / {tn("frames", total)}
         </span>
         {isFiltering(filters) && (
           <button className="link" onClick={() => onChange(NO_FILTERS)}>
-            zrušit
+            {t("filter.reset")}
           </button>
         )}
       </h3>
+      {metaStatus === "off" && total > 0 && (
+        <div className="meta-request">
+          <span className="hint">{t("filter.metaHint")}</span>
+          <button onClick={onLoadMetadata}>{t("filter.metaLoad", { n: total })}</button>
+        </div>
+      )}
       <div className="period-chips">
         {Object.entries(PERIODS).map(([p, { label, color }]) => (
           <button
@@ -80,7 +90,7 @@ export function FilterPanel({ filters, available, total, shown, onChange }: Prop
               onChange({ ...filters, rules });
             }}
           />
-          <button title="Odebrat" onClick={() => onChange({ ...filters, rules: filters.rules.filter((_, j) => j !== i) })}>
+          <button title={t("filter.remove")} onClick={() => onChange({ ...filters, rules: filters.rules.filter((_, j) => j !== i) })}>
             ×
           </button>
         </div>
@@ -91,7 +101,7 @@ export function FilterPanel({ filters, available, total, shown, onChange }: Prop
             className="link"
             onClick={() => onChange({ ...filters, rules: [...filters.rules, { key: available.includes("sky_state.sun_altitude_deg") ? "sky_state.sun_altitude_deg" : available[0] }] })}
           >
-            + podmínka na hodnotu
+            {t("filter.addRule")}
           </button>
         )}
         <label className="small">
@@ -100,7 +110,7 @@ export function FilterPanel({ filters, available, total, shown, onChange }: Prop
             checked={filters.rawOnly}
             onChange={(e) => onChange({ ...filters, rawOnly: e.target.checked })}
           />{" "}
-          jen s RAW
+          {t("filter.rawOnly")}
         </label>
       </div>
     </section>

@@ -49,16 +49,3 @@ export function forgetSource(search: string): RecentSource[] {
 export function clearRecent(): RecentSource[] {
   return save([]);
 }
-
-/** "před 5 min", "včera", … — coarse, for the recent list. */
-export function ago(t: number, now = Date.now()): string {
-  const min = Math.round((now - t) / 60_000);
-  if (min < 1) return "právě teď";
-  if (min < 60) return `před ${min} min`;
-  const h = Math.round(min / 60);
-  if (h < 24) return `před ${h} h`;
-  const d = Math.round(h / 24);
-  if (d === 1) return "včera";
-  if (d < 30) return `před ${d} dny`;
-  return new Date(t).toLocaleDateString("cs-CZ");
-}

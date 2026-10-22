@@ -1,4 +1,5 @@
 import { HttpError } from "./types";
+import { t } from "../lib/i18n";
 
 /**
  * fetch() that turns the opaque "TypeError: Failed to fetch" (almost always
@@ -11,9 +12,7 @@ export async function fetchOk(url: string, init?: RequestInit): Promise<Response
     res = await fetch(url, { ...localNetworkHint(url), ...init });
   } catch (err) {
     if ((err as Error).name === "AbortError") throw err;
-    throw new Error(
-      `Nelze načíst ${url} — server je nedostupný nebo nepovoluje CORS pro tuto doménu.`,
-    );
+    throw new Error(t("err.network", { url }));
   }
   if (!res.ok) throw new HttpError(url, res.status);
   return res;

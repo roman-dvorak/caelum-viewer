@@ -4,6 +4,7 @@ import type { CameraConfig } from "./data/types";
 import { StartScreen } from "./components/StartScreen";
 import { Viewer } from "./components/Viewer";
 import { cameraFromParams, readParams } from "./lib/urlState";
+import { t } from "./lib/i18n";
 
 type State =
   | { kind: "start"; error?: string }
@@ -22,10 +23,10 @@ export function App() {
     if (!params.catalog) return;
     loadCatalog(params.catalog)
       .then((c) => setState({ kind: "ready", cameras: c.cameras, title: c.title, fromCatalog: true }))
-      .catch((e: Error) => setState({ kind: "start", error: `Katalog: ${e.message}` }));
+      .catch((e: Error) => setState({ kind: "start", error: t("app.catalogError", { msg: e.message }) }));
   }, [params.catalog]);
 
-  if (state.kind === "loading") return <div className="center muted">Načítám katalog…</div>;
+  if (state.kind === "loading") return <div className="center muted">{t("app.loadingCatalog")}</div>;
   if (state.kind === "start") return <StartScreen error={state.error} />;
   return <Viewer cameras={state.cameras} title={state.title} fromCatalog={state.fromCatalog} initial={params} />;
 }

@@ -1,5 +1,6 @@
 import { encodePath, fetchOk, withTrailingSlash } from "./fetch";
 import type { DataSource, Entry, SourceConfig } from "./types";
+import { t } from "../lib/i18n";
 
 type S3Config = Extract<SourceConfig, { type: "s3" }>;
 
@@ -55,7 +56,7 @@ export class S3DataSource implements DataSource {
 export function s3BucketUrl(config: S3Config): string {
   if (config.url) return config.url;
   if (!config.endpoint || !config.bucket) {
-    throw new Error("S3 zdroj potřebuje buď `url`, nebo `endpoint` + `bucket`.");
+    throw new Error(t("err.s3Config"));
   }
   const endpoint = config.endpoint.replace(/\/+$/, "");
   if (config.style === "virtual") {
@@ -80,7 +81,7 @@ export function parseListObjectsV2(xml: string): ListPage {
     throw new Error(`S3: ${code} — ${childText(err, "Message") ?? ""}`);
   }
   if (doc.getElementsByTagName("parsererror").length) {
-    throw new Error("S3: odpověď není platné XML ListObjectsV2.");
+    throw new Error(t("err.s3Xml"));
   }
   const prefixes = Array.from(doc.getElementsByTagName("CommonPrefixes"))
     .map((el) => childText(el, "Prefix"))

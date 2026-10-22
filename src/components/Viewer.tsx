@@ -3,7 +3,7 @@ import { CameraArchive, type Frame } from "../data/archive";
 import { createDataSource } from "../data/factory";
 import type { CameraConfig } from "../data/types";
 import { VIEWER_DOCS_URL } from "../lib/brand";
-import { applyFilters, NO_FILTERS, type Filters } from "../lib/filters";
+import { applyFilters, needsMetadata, NO_FILTERS, type Filters } from "../lib/filters";
 import { useMetadata, usePreload } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
 import { rememberCamera } from "../lib/recent";
@@ -15,7 +15,9 @@ import { Gallery } from "./Gallery";
 import { Icon } from "./Icon";
 import { ImageViewer } from "./ImageViewer";
 import { MetadataPanel } from "./MetadataPanel";
+import { LangSwitch } from "./LangSwitch";
 import { Timeline } from "./Timeline";
+import { t, tn } from "../lib/i18n";
 
 interface Props {
   cameras: CameraConfig[];
@@ -55,13 +57,23 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const [playing, setPlaying] = useState(false);
   const [fps, setFps] = useState(10);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const [tab, setTab] = useState<"charts" | "gallery">("charts");
+  const [tab, setTab] = useState<"charts" | "gallery">("gallery");
+  /** Metadata of the whole day is fetched only on request (charts, filters, the load button). */
+  const [metaRequested, setMetaRequested] = useState(false);
   const [overlay, setOverlay] = useState(true);
   const [chartFields, setChartFields] = useState(loadChartFields);
   /** Time of day (HH:MM:SS) to jump to once the next frame list arrives. */
   const pendingTime = useRef<string | undefined>(initial.time);
 
-  const { metaMap, pending } = useMetadata(archive, frames);
+  const loadAllMeta = metaRequested || tab === "charts" || needsMetadata(filters);
+  const wantedMeta = useMemo(() => {
+    if (loadAllMeta) return frames;
+    // Just the frame on screen and the next ones, for the overlay and the metadata table.
+    const i = frames.findIndex((f) => f.id === currentId);
+    return i < 0 ? [] : frames.slice(Math.max(0, i - 1), i + 3);
+  }, [loadAllMeta, frames, currentId]);
+  const { metaMap, pending } = useMetadata(archive, wantedMeta);
+  const metaStatus = !loadAllMeta ? "off" : pending > 0 ? "loading" : "done";
   const visible = useMemo(() => applyFilters(frames, metaMap, filters), [frames, metaMap, filters]);
   const visibleIds = useMemo(() => new Set(visible.map((f) => f.id)), [visible]);
   const currentIndex = visible.findIndex((f) => f.id === currentId);
@@ -139,7 +151,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
   // --- URL ------------------------------------------------------------------
   useEffect(() => {
-    rememberCamera(camera.name, fromCatalog ? (title ?? "Katalog") : undefined, {
+    rememberCamera(camera.name, fromCatalog ? (title ?? t("data.catalog")) : undefined, {
       ...initial,
       camera: fromCatalog ? cameraId : undefined,
     });
@@ -277,7 +289,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href="./" title="Úvodní stránka">
+        <a className="brand" href="./" title={t("viewer.home")}>
           <img src="./favicon.svg" alt="" />
           <span>{title ?? "Caelum Viewer"}</span>
         </a>
@@ -294,11 +306,11 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
         )}
         {camera.link && (
           <a className="btn" href={camera.link} target="_blank" rel="noreferrer" title={camera.link}>
-            Kamera ↗
+            {t("viewer.cameraLink")}
           </a>
         )}
         <div className="date-nav">
-          <button disabled={!prevDate} onClick={() => changeDate(prevDate)} title="Předchozí den s daty">
+          <button disabled={!prevDate} onClick={() => changeDate(prevDate)} title={t("viewer.prevDay")}>
             <Icon name="prev" />
           </button>
           <input
@@ -308,27 +320,28 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             max={todayUtc()}
             onChange={(e) => changeDate(e.target.value)}
           />
-          <button disabled={!nextDate} onClick={() => changeDate(nextDate)} title="Další den s daty">
+          <button disabled={!nextDate} onClick={() => changeDate(nextDate)} title={t("viewer.nextDay")}>
             <Icon name="next" />
           </button>
-          <button onClick={() => changeDate(todayUtc())} title="Dnes (UTC)">
-            Dnes
+          <button onClick={() => changeDate(todayUtc())} title={t("viewer.todayTitle")}>
+            {t("viewer.today")}
           </button>
         </div>
-        <button className={`live${live ? " on" : ""}`} onClick={toggleLive} title="Živě — nejnovější snímek (L)">
+        <button className={`live${live ? " on" : ""}`} onClick={toggleLive} title={t("viewer.liveTitle")}>
           ● Live
         </button>
         <span className="muted small status">
           {loadingFrames
-            ? "Načítám seznam…"
-            : pending > 0
-              ? `metadata: ${frames.length - pending}/${frames.length}`
-              : `${frames.length} snímků`}
-          {dates && date && !dates.includes(date) && !loadingFrames && " · pro tento den nejsou data"}
+            ? t("viewer.loadingList")
+            : metaStatus === "loading"
+              ? t("viewer.metadataProgress", { done: wantedMeta.length - pending, total: wantedMeta.length })
+              : tn("frames", frames.length)}
+          {dates && date && !dates.includes(date) && !loadingFrames && t("viewer.noDataForDay")}
         </span>
         <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
-          Dokumentace ↗
+          {t("viewer.docs")}
         </a>
+        <LangSwitch />
       </header>
 
       {error && (
@@ -351,17 +364,17 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             live={live}
           />
           <div className="transport">
-            <button onClick={() => step(-Infinity)} title="První (Home)"><Icon name="first" /></button>
-            <button onClick={() => step(-1)} title="Předchozí (←)"><Icon name="prev" /></button>
-            <button className="play" onClick={togglePlay} title="Přehrát (mezerník)" disabled={!visible.length}>
+            <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
+            <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
+            <button className="play" onClick={togglePlay} title={t("viewer.play")} disabled={!visible.length}>
               <Icon name={playing ? "pause" : "play"} />
             </button>
-            <button onClick={() => step(1)} title="Další (→)"><Icon name="next" /></button>
-            <button onClick={() => step(Infinity)} title="Poslední (End)"><Icon name="last" /></button>
-            <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title="Rychlost přehrávání">
+            <button onClick={() => step(1)} title={t("viewer.next")}><Icon name="next" /></button>
+            <button onClick={() => step(Infinity)} title={t("viewer.last")}><Icon name="last" /></button>
+            <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title={t("viewer.speed")}>
               {SPEEDS.map((s) => (
                 <option key={s} value={s}>
-                  {s} snímků/s
+                  {t("viewer.fps", { n: s })}
                 </option>
               ))}
             </select>
@@ -370,7 +383,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
               <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
             </span>
             <label className="small">
-              <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> overlay
+              <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
             </label>
           </div>
           {date && (
@@ -392,6 +405,8 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             available={availableFields}
             total={frames.length}
             shown={visible.length}
+            metaStatus={metaStatus}
+            onLoadMetadata={() => setMetaRequested(true)}
             onChange={(f) => {
               setLive(false);
               setFilters(f);
@@ -401,11 +416,11 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
         <section className="bottom">
           <div className="tabs">
-            <button className={tab === "charts" ? "on" : ""} onClick={() => setTab("charts")}>
-              Grafy
-            </button>
             <button className={tab === "gallery" ? "on" : ""} onClick={() => setTab("gallery")}>
-              Galerie ({visible.length})
+              {t("viewer.gallery", { n: visible.length })}
+            </button>
+            <button className={tab === "charts" ? "on" : ""} onClick={() => setTab("charts")} title={t("viewer.chartsTitle")}>
+              {t("viewer.charts")}
             </button>
           </div>
           {tab === "charts" ? (
