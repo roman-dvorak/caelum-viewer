@@ -1,8 +1,11 @@
 import { buildSearch, readParams, type ViewParams } from "./urlState";
 
-/** Sources opened before, kept per browser so the start screen can offer them again. */
+/** A camera opened before, kept per browser so the start screen can offer it again. */
 export interface RecentSource {
+  /** Camera name. */
   label: string;
+  /** Catalog title when the camera came from a catalog. */
+  catalog?: string;
   /** Query string without the view position (date / time / live). */
   search: string;
   kind: string;
@@ -10,7 +13,7 @@ export interface RecentSource {
 }
 
 const KEY = "caelum-viewer:recent";
-const MAX = 6;
+const MAX = 8;
 
 export function loadRecent(): RecentSource[] {
   try {
@@ -21,25 +24,41 @@ export function loadRecent(): RecentSource[] {
   }
 }
 
-export function rememberSource(label: string, params: ViewParams = readParams()): void {
-  const { date: _d, time: _t, live: _l, camera: _c, ...rest } = params;
-  const search = buildSearch(rest);
-  if (!search) return;
-  const kind = rest.catalog ? "catalog" : (rest.type ?? "");
-  const next = [{ label, search, kind, at: Date.now() }, ...loadRecent().filter((r) => r.search !== search)].slice(0, MAX);
+function save(list: RecentSource[]): RecentSource[] {
   try {
-    localStorage.setItem(KEY, JSON.stringify(next));
+    localStorage.setItem(KEY, JSON.stringify(list));
   } catch {
     // Storage unavailable (private mode, blocked site data) — nothing to remember.
   }
+  return list;
+}
+
+/** Records the camera being viewed; `params` must already name the camera for catalog sources. */
+export function rememberCamera(label: string, catalog: string | undefined, params: ViewParams = readParams()): void {
+  const { date: _d, time: _t, live: _l, ...rest } = params;
+  const search = buildSearch(rest);
+  if (!search) return;
+  const kind = rest.catalog ? "catalog" : (rest.type ?? "");
+  save([{ label, catalog, search, kind, at: Date.now() }, ...loadRecent().filter((r) => r.search !== search)].slice(0, MAX));
 }
 
 export function forgetSource(search: string): RecentSource[] {
-  const next = loadRecent().filter((r) => r.search !== search);
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    // ignore
-  }
-  return next;
+  return save(loadRecent().filter((r) => r.search !== search));
+}
+
+export function clearRecent(): RecentSource[] {
+  return save([]);
+}
+
+/** "před 5 min", "včera", … — coarse, for the recent list. */
+export function ago(t: number, now = Date.now()): string {
+  const min = Math.round((now - t) / 60_000);
+  if (min < 1) return "právě teď";
+  if (min < 60) return `před ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `před ${h} h`;
+  const d = Math.round(h / 24);
+  if (d === 1) return "včera";
+  if (d < 30) return `před ${d} dny`;
+  return new Date(t).toLocaleDateString("cs-CZ");
 }

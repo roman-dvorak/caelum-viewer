@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SOURCE_TYPES } from "../data/factory";
-import { forgetSource, loadRecent, type RecentSource } from "../lib/recent";
+import { DEVELOPER_NAME, DEVELOPER_URL, DOCS_URL, REPO_URL, VIEWER_DOCS_URL } from "../lib/brand";
+import { ago, clearRecent, forgetSource, loadRecent, type RecentSource } from "../lib/recent";
 import { buildSearch, type ViewParams } from "../lib/urlState";
 
 const SOURCE_TEXT: Record<string, [string, string]> = {
@@ -57,8 +58,18 @@ export function StartScreen({ error }: { error?: string }) {
     <div className="start">
       <header className="hero">
         <Starfield />
+        <nav className="hero-nav">
+          <a href={DOCS_URL} target="_blank" rel="noreferrer">
+            Dokumentace
+          </a>
+          <a href={DEVELOPER_URL} target="_blank" rel="noreferrer">
+            {DEVELOPER_NAME}
+          </a>
+        </nav>
         <div className="hero-content">
-          <div className="eyebrow">AstroMeters</div>
+          <a className="eyebrow" href={DEVELOPER_URL} target="_blank" rel="noreferrer">
+            {DEVELOPER_NAME}
+          </a>
           <h1 className="wordmark">
             caelum <span>viewer</span>
           </h1>
@@ -71,8 +82,37 @@ export function StartScreen({ error }: { error?: string }) {
         <div className="start-main">
           {error && <div className="error">{error}</div>}
 
+          {recent.length > 0 && (
+            <section className="panel">
+              <div className="panel-head">
+                <h2>Naposledy navštívené kamery</h2>
+                <button type="button" className="link small" onClick={() => setRecent(clearRecent())}>
+                  Vymazat
+                </button>
+              </div>
+              <ul className="recent">
+                {recent.map((r) => (
+                  <li key={r.search}>
+                    <a href={r.search}>
+                      <span className="tag">{KIND_LABELS[r.kind] ?? r.kind}</span>
+                      <span className="recent-label">
+                        {r.label}
+                        {r.catalog && <span className="recent-catalog"> · {r.catalog}</span>}
+                      </span>
+                      <span className="recent-src">{describe(r.search)}</span>
+                      <span className="recent-ago">{ago(r.at)}</span>
+                    </a>
+                    <button type="button" className="link" title="Odebrat ze seznamu" onClick={() => setRecent(forgetSource(r.search))}>
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <form onSubmit={submit} className="panel open-form">
-            <h2>Otevřít zdroj dat</h2>
+            <h2>{recent.length ? "Otevřít jiný zdroj" : "Otevřít zdroj dat"}</h2>
             <div className="segmented" role="tablist">
               <button type="button" role="tab" aria-selected={mode === "catalog"} className={mode === "catalog" ? "on" : ""} onClick={() => setMode("catalog")}>
                 Katalog kamer
@@ -153,28 +193,36 @@ export function StartScreen({ error }: { error?: string }) {
             </div>
           </form>
 
-          {recent.length > 0 && (
-            <section className="panel">
-              <h2>Naposledy otevřené</h2>
-              <ul className="recent">
-                {recent.map((r) => (
-                  <li key={r.search}>
-                    <a href={r.search}>
-                      <span className="tag">{KIND_LABELS[r.kind] ?? r.kind}</span>
-                      <span className="recent-label">{r.label}</span>
-                      <span className="recent-src">{describe(r.search)}</span>
-                    </a>
-                    <button type="button" className="link" title="Odebrat ze seznamu" onClick={() => setRecent(forgetSource(r.search))}>
-                      ×
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
+          {recent.length === 0 && (
+            <p className="hint recent-empty">Kamery, které otevřete, se tu příště objeví v seznamu naposledy navštívených.</p>
           )}
+
         </div>
 
         <aside className="start-side">
+          <section>
+            <h2>Dokumentace</h2>
+            <ul className="doc-links">
+              <li>
+                <a href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
+                  Caelum Viewer <span>↗</span>
+                </a>
+                <span className="hint">zdroje dat, katalog, parametry URL</span>
+              </li>
+              <li>
+                <a href={DOCS_URL} target="_blank" rel="noreferrer">
+                  Caelum <span>↗</span>
+                </a>
+                <span className="hint">software all-sky kamery — instalace, nahrávání dat</span>
+              </li>
+              <li>
+                <a href={DEVELOPER_URL} target="_blank" rel="noreferrer">
+                  {DEVELOPER_NAME} <span>↗</span>
+                </a>
+                <span className="hint">kamery a příslušenství</span>
+              </li>
+            </ul>
+          </section>
           <section>
             <h2>Co umí</h2>
             <ul className="features">
@@ -216,7 +264,8 @@ export function StartScreen({ error }: { error?: string }) {
       </section>
 
       <footer className="start-foot">
-        <a href="https://github.com/roman-dvorak/caelum-viewer">caelum-viewer</a> · statická aplikace bez backendu
+        <a href={DOCS_URL}>Dokumentace</a> · <a href={REPO_URL}>GitHub</a> · statická aplikace bez backendu ·{" "}
+        <a href={DEVELOPER_URL}>{DEVELOPER_NAME}</a>
       </footer>
     </div>
   );

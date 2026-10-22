@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CameraArchive, type Frame } from "../data/archive";
 import { createDataSource } from "../data/factory";
 import type { CameraConfig } from "../data/types";
+import { VIEWER_DOCS_URL } from "../lib/brand";
 import { applyFilters, NO_FILTERS, type Filters } from "../lib/filters";
 import { useMetadata, usePreload } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
+import { rememberCamera } from "../lib/recent";
 import { nearestIndex, parseTimeOnDate, todayUtc, utcTime } from "../lib/time";
 import { updateParams, type ViewParams } from "../lib/urlState";
 import { Charts } from "./Charts";
@@ -137,6 +139,13 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
   // --- URL ------------------------------------------------------------------
   useEffect(() => {
+    rememberCamera(camera.name, fromCatalog ? (title ?? "Katalog") : undefined, {
+      ...initial,
+      camera: fromCatalog ? cameraId : undefined,
+    });
+  }, [camera, cameraId, fromCatalog, title, initial]);
+
+  useEffect(() => {
     updateParams({
       camera: fromCatalog ? cameraId : undefined,
       date,
@@ -268,10 +277,10 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand" title={archive.source.label}>
+        <a className="brand" href="./" title="Úvodní stránka">
           <img src="./favicon.svg" alt="" />
           <span>{title ?? "Caelum Viewer"}</span>
-        </div>
+        </a>
         {cameras.length > 1 ? (
           <select value={cameraId} onChange={(e) => changeCamera(e.target.value)}>
             {cameras.map((c) => (
@@ -317,6 +326,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
               : `${frames.length} snímků`}
           {dates && date && !dates.includes(date) && !loadingFrames && " · pro tento den nejsou data"}
         </span>
+        <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
+          Dokumentace ↗
+        </a>
       </header>
 
       {error && (

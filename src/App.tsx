@@ -3,7 +3,6 @@ import { loadCatalog } from "./data/catalog";
 import type { CameraConfig } from "./data/types";
 import { StartScreen } from "./components/StartScreen";
 import { Viewer } from "./components/Viewer";
-import { rememberSource } from "./lib/recent";
 import { cameraFromParams, readParams } from "./lib/urlState";
 
 type State =
@@ -25,10 +24,6 @@ export function App() {
       .then((c) => setState({ kind: "ready", cameras: c.cameras, title: c.title, fromCatalog: true }))
       .catch((e: Error) => setState({ kind: "start", error: `Katalog: ${e.message}` }));
   }, [params.catalog]);
-
-  useEffect(() => {
-    if (state.kind === "ready") rememberSource(state.title ?? state.cameras[0]?.name ?? "Kamera", params);
-  }, [state, params]);
 
   if (state.kind === "loading") return <div className="center muted">Načítám katalog…</div>;
   if (state.kind === "start") return <StartScreen error={state.error} />;
