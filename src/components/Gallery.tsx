@@ -33,7 +33,13 @@ export function Gallery({ frames, metaMap, source, currentId, onSelect }: Props)
   const page = useMemo(() => frames.filter((f) => Math.floor(f.t / HOUR) % 24 === hour), [frames, hour]);
 
   useEffect(() => {
-    grid.current?.querySelector(".tile.current")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    // Scroll only the gallery itself — scrollIntoView would also move the page during playback.
+    const box = grid.current;
+    const tile = box?.querySelector<HTMLElement>(".tile.current");
+    if (!box || !tile) return;
+    const top = tile.offsetTop; // .gallery is the offset parent
+    if (top < box.scrollTop) box.scrollTop = top;
+    else if (top + tile.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = top + tile.offsetHeight - box.clientHeight;
   }, [currentId, hour]);
 
   if (!frames.length) return <div className="muted pad">{t("gallery.empty")}</div>;

@@ -57,7 +57,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const [playing, setPlaying] = useState(false);
   const [fps, setFps] = useState(10);
   const [filters, setFilters] = useState<Filters>(NO_FILTERS);
-  const [tab, setTab] = useState<"charts" | "gallery">("gallery");
+  /** Bottom panel; closed by default so no previews or metadata are fetched until asked for. */
+  const [tab, setTab] = useState<"charts" | "gallery" | null>(null);
+  const toggleTab = (next: "charts" | "gallery") => setTab((cur) => (cur === next ? null : next));
   /** Metadata of the whole day is fetched only on request (charts, filters, the load button). */
   const [metaRequested, setMetaRequested] = useState(false);
   const [overlay, setOverlay] = useState(true);
@@ -416,14 +418,14 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
         <section className="bottom">
           <div className="tabs">
-            <button className={tab === "gallery" ? "on" : ""} onClick={() => setTab("gallery")}>
+            <button className={tab === "gallery" ? "on" : ""} aria-expanded={tab === "gallery"} onClick={() => toggleTab("gallery")}>
               {t("viewer.gallery", { n: visible.length })}
             </button>
-            <button className={tab === "charts" ? "on" : ""} onClick={() => setTab("charts")} title={t("viewer.chartsTitle")}>
+            <button className={tab === "charts" ? "on" : ""} aria-expanded={tab === "charts"} onClick={() => toggleTab("charts")} title={t("viewer.chartsTitle")}>
               {t("viewer.charts")}
             </button>
           </div>
-          {tab === "charts" ? (
+          {tab === "charts" && (
             <Charts
               frames={visible}
               metaMap={metaMap}
@@ -433,7 +435,8 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
               onSelect={select}
               onFieldsChange={setChartFields}
             />
-          ) : (
+          )}
+          {tab === "gallery" && (
             <Gallery frames={visible} metaMap={metaMap} source={archive.source} currentId={current?.id} onSelect={select} />
           )}
         </section>

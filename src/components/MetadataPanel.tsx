@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { DataSource } from "../data/types";
 import type { Frame, FrameMeta } from "../data/archive";
 import { fieldInfo, flattenAll } from "../lib/metadata";
@@ -11,8 +12,14 @@ interface Props {
 }
 
 export function MetadataPanel({ frame, meta, source }: Props) {
+  // While the next frame's metadata is on its way (playback), keep the previous table
+  // instead of collapsing to a one-line message — no flicker, no jumping layout.
+  const last = useRef<FrameMeta | undefined>(undefined);
+  const loading = !meta && !!(frame?.meta || frame?.rawMeta);
+  if (meta) last.current = meta;
+  const shown = meta ?? (loading ? last.current : undefined);
   if (!frame) return null;
-  const rows = meta ? flattenAll(meta) : [];
+  const rows = shown ? flattenAll(shown) : [];
   return (
     <section className="panel">
       <h3>
@@ -35,8 +42,8 @@ export function MetadataPanel({ frame, meta, source }: Props) {
           </a>
         )}
       </div>
-      {meta ? (
-        <table className="meta">
+      {shown ? (
+        <table className={loading ? "meta stale" : "meta"}>
           <tbody>
             {rows.map(([k, v]) => (
               <tr key={k}>
