@@ -15,7 +15,7 @@ interface Props {
 }
 
 const SYNC_KEY = "caelum-charts";
-const COLORS = ["#5b8cff", "#f5a742", "#4cc38a", "#e5534b", "#b083f0", "#3fc1c9"];
+const COLORS = ["#5a8ee8", "#e8a13a", "#2ecc9a", "#e85a4a", "#b083f0", "#3fc1c9"];
 const utc = (ts: number) => uPlot.tzDate(new Date(ts * 1e3), "Etc/UTC");
 const hhmm = (ts: number) => new Date(ts * 1000).toISOString().slice(11, 16);
 
@@ -137,12 +137,12 @@ function Chart({ field, color, xs, ys, currentIdx, onPick }: ChartProps) {
       scales: { x: { time: true }, y: { distr: logScale ? 3 : 1 } },
       axes: [
         {
-          stroke: "#8a94ad",
-          grid: { stroke: "#ffffff12" },
-          ticks: { stroke: "#ffffff20" },
+          stroke: "#8a9db8",
+          grid: { stroke: "#1e2d42" },
+          ticks: { stroke: "#2a3a52" },
           values: (_u, splits) => splits.map(hhmm),
         },
-        { stroke: "#8a94ad", grid: { stroke: "#ffffff12" }, ticks: { stroke: "#ffffff20" }, size: 60 },
+        { stroke: "#8a9db8", grid: { stroke: "#1e2d42" }, ticks: { stroke: "#2a3a52" }, size: 60 },
       ],
       series: [
         { value: (_u, v) => (v == null ? "—" : `${new Date(v * 1000).toISOString().slice(11, 19)} UTC`) },

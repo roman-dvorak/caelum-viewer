@@ -336,6 +336,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             meta={current ? metaMap.get(current.id) : undefined}
             cameraName={camera.name}
             showOverlay={overlay}
+            live={live}
           />
           <div className="transport">
             <button onClick={() => step(-Infinity)} title="První (Home)"><Icon name="first" /></button>

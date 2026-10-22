@@ -67,15 +67,16 @@ export function skyPeriod(meta: FrameMeta | undefined): string | undefined {
 }
 
 export const PERIODS: Record<string, { label: string; color: string }> = {
-  day: { label: "Den", color: "#f5c542" },
-  civil_twilight: { label: "Občanský soumrak", color: "#e88a3c" },
-  nautical_twilight: { label: "Nautický soumrak", color: "#8a5cd6" },
-  astronomical_twilight: { label: "Astronomický soumrak", color: "#4a5fc1" },
-  night: { label: "Noc", color: "#2b3a67" },
+  // Caelum palette, ordered by lightness so the phases stay apart without hue.
+  day: { label: "Den", color: "#f5c96a" },
+  civil_twilight: { label: "Občanský soumrak", color: "#e8a13a" },
+  nautical_twilight: { label: "Nautický soumrak", color: "#5a8ee8" },
+  astronomical_twilight: { label: "Astronomický soumrak", color: "#2a4a8a" },
+  night: { label: "Noc", color: "#1c305c" },
 };
 
 export function periodColor(period: string | undefined): string {
-  return (period && PERIODS[period]?.color) || "#5c6b8a";
+  return (period && PERIODS[period]?.color) || "#4a5e78";
 }
 
 /** Flattened view (all leaves, including strings/booleans) for the table. */

@@ -40,9 +40,9 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
     const g = c.getContext("2d")!;
     g.scale(dpr, dpr);
     const css = getComputedStyle(c);
-    const muted = css.getPropertyValue("--muted").trim() || "#8a94ad";
-    const line = css.getPropertyValue("--line").trim() || "#2a3350";
-    const accent = css.getPropertyValue("--accent").trim() || "#5b8cff";
+    const muted = css.getPropertyValue("--muted").trim() || "#8a9db8";
+    const line = css.getPropertyValue("--line").trim() || "#2a3a52";
+    const accent = css.getPropertyValue("--accent").trim() || "#5a8ee8";
     g.clearRect(0, 0, width, HEIGHT);
 
     const barTop = 6;
@@ -63,7 +63,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
 
     g.fillStyle = muted;
     g.strokeStyle = muted;
-    g.font = "11px system-ui, sans-serif";
+    g.font = '11px "JetBrains Mono", ui-monospace, monospace';
     g.textAlign = "center";
     const step = width < 500 ? 6 : width < 900 ? 3 : 1;
     for (let h = 0; h <= 24; h += step) {

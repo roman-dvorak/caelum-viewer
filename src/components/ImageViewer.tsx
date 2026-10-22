@@ -11,6 +11,8 @@ interface Props {
   meta?: FrameMeta;
   cameraName: string;
   showOverlay: boolean;
+  /** Live mode — the frame border glows amber. */
+  live?: boolean;
 }
 
 interface View {
@@ -23,7 +25,7 @@ const RESET: View = { scale: 1, x: 0, y: 0 };
 /** Preview with wheel/pinch-free zoom, drag to pan, double-click to reset and
  *  fullscreen. Zoom is kept across frames so a region can be followed
  *  through a time-lapse. */
-export function ImageViewer({ frame, src, meta, cameraName, showOverlay }: Props) {
+export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View>(RESET);
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
@@ -73,7 +75,7 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay }: Props
   return (
     <div
       ref={box}
-      className="viewer"
+      className={live ? "viewer is-live" : "viewer"}
       onPointerDown={(e) => {
         if (view.scale === 1 || e.button !== 0) return;
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
