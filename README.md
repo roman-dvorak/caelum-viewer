@@ -1,30 +1,39 @@
 # Caelum Viewer
 
-Statická webová aplikace (React + TypeScript + Vite) pro prohlížení dat z all-sky kamer
-[caelum](../caelum). Nemá žádný vlastní backend — běží na GitHub Pages a data čte přímo
-z S3 nebo z HTTP výpisu adresářů (Apache / nginx / Caddy).
+A static web app (React + TypeScript + Vite) for browsing data from
+[caelum](https://github.com/roman-dvorak/caelum) all-sky cameras. It has no backend of its
+own — it runs on GitHub Pages and reads the data straight from S3, from an HTTP directory
+listing (Apache / nginx / Caddy) or from the camera itself.
 
-## Funkce
+Documentation: [caelum.astrometers.eu](https://caelum.astrometers.eu/viewer.html) ·
+developed by [AstroMeters](https://astrometers.eu/).
 
-- výběr kamery (katalog), dne a času; stav pohledu je v URL (bookmark / sdílení odkazu)
-- časová osa 24 h UTC obarvená podle fáze dne (den / soumraky / noc), klik a tažení = posun
-- detail snímku se zoomem (kolečko, +/−), posunem tažením a fullscreenem
-- overlay (čas, expozice, gain, fáze, Slunce, Měsíc), tabulka metadat
-- stažení původního RAW (DNG), odkaz na náhled a JSON metadat
-- přehrávání jako time-lapse (2–30 snímků/s), předběžné načítání dalších snímků
-- live režim — každých 30 s načte seznam a zobrazí nejnovější snímek
-- grafy libovolných číselných metadat se synchronizovaným kurzorem;
-  svislá čára sleduje zobrazený snímek, klik do grafu otevře odpovídající snímek
-- filtrování podle fáze dne, rozsahů hodnot metadat a dostupnosti RAW
-  (filtr platí i pro přehrávání, galerii a grafy)
-- galerie WebP náhledů
+## Features
 
-Klávesy: `←/→` (se Shiftem po 10), `Home/End`, mezerník = přehrávání, `F` = fullscreen,
+- pick a camera (catalog), a day and a time; the view is kept in the URL (bookmark / share a link)
+- 24 h UTC timeline coloured by sky period (day / twilights / night); click and drag to seek
+- frame detail with zoom (wheel, +/−), drag to pan and fullscreen
+- overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
+- download of the original RAW (DNG), links to the preview and the JSON metadata
+- time-lapse playback (2–30 frames/s) with preloading of the next frames
+- live mode — reloads the list every 30 s and shows the newest frame
+- gallery of WebP previews, paginated by UTC hour
+- charts of any numeric metadata with a synchronised cursor; a vertical line follows the
+  frame on screen, a click in a chart opens the matching frame
+- filters by sky period, metadata value ranges and RAW availability
+  (they apply to playback, the gallery and the charts too)
+- metadata on request: on open only the frame on screen and its neighbours are loaded; the
+  whole day loads once the charts are opened, a period / value filter is used, or
+  “Load metadata” is pressed
+- recently viewed cameras on the start screen (kept in the browser's localStorage)
+- English and Czech UI
+
+Keys: `←/→` (with Shift by 10), `Home/End`, Space = playback, `F` = fullscreen,
 `+/−/0` = zoom, `L` = live, `O` = overlay.
 
-## Spuštění
+## Usage
 
-Přímý zdroj:
+Direct source:
 
 ```
 https://roman-dvorak.github.io/caelum-viewer/?type=http-index&source=https://data.example.org/camera01/
@@ -33,27 +42,30 @@ https://roman-dvorak.github.io/caelum-viewer/?type=caelum-manifest&source=https:
 https://roman-dvorak.github.io/caelum-viewer/?type=caelum&source=192.168.1.50
 ```
 
-Katalog kamer:
+Camera catalog:
 
 ```
 https://roman-dvorak.github.io/caelum-viewer/?catalog=https://example.org/cameras.json
 ```
 
-Další parametry: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
-`name=<název>` a `link=<URL webového rozhraní kamery>` (u přímého zdroje), `thumbnails=` / `raw=` (šablona rozložení, viz níže).
+Other parameters: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
+`name=<name>` and `link=<URL of the camera's web interface>` (direct source only),
+`thumbnails=` / `raw=` (layout template, see below), `lang=en|cs` (UI language; by default
+it follows the browser and the EN/CS switch remembers the choice).
 
-### Katalog
+### Catalog
 
-Viz [`public/examples/cameras.json`](public/examples/cameras.json). Každá kamera má `id`,
-`name`, `source` a volitelně `link` (odkaz na webové rozhraní kamery, v liště jako „Kamera ↗“), `layout` a libovolná další metadata stanice. Relativní URL se
-vyhodnocují vůči URL katalogu. Přijímá se i `cameras.json`, který generuje uploader caelum
-(`{cameras:[{slug,name,manifest}]}`).
+See [`public/examples/cameras.json`](public/examples/cameras.json). Each camera has an `id`,
+a `name`, a `source` and optionally a `link` (the camera's web interface, shown in the top
+bar as “Camera ↗”), a `layout` and any other station metadata. Relative URLs resolve
+against the catalog's URL. The `cameras.json` written by the caelum uploader
+(`{cameras:[{slug,name,manifest}]}`) is accepted as well.
 
-Do URL ani do katalogu nepatří žádné S3 klíče — viewer počítá s veřejně čitelnými daty.
+No S3 keys belong in the URL or the catalog — the viewer expects publicly readable data.
 
-## Zdroje dat
+## Data sources
 
-Zbytek aplikace pracuje jen s rozhraním `DataSource` ([src/data/types.ts](src/data/types.ts)):
+The rest of the app only talks to the `DataSource` interface ([src/data/types.ts](src/data/types.ts)):
 
 ```ts
 interface DataSource {
@@ -62,34 +74,35 @@ interface DataSource {
 }
 ```
 
-| typ | adaptér | poznámka |
+| type | adapter | notes |
 | --- | --- | --- |
-| `s3` | [`S3DataSource`](src/data/s3.ts) | `ListObjectsV2` s `delimiter=/`, stránkování, path-style nebo `style=virtual` |
-| `http-index` | [`HttpIndexDataSource`](src/data/httpIndex.ts) | JSON výpis (nginx `autoindex_format json`, Caddy), jinak parsuje HTML výpis |
-| `caelum` | [`CaelumApiDataSource`](src/data/caelumApi.ts) | přímo z kamery přes její API (`/api/files`); stačí IP, výchozí port 8000 — viz níže |
-| `caelum-manifest` | [`CaelumManifestDataSource`](src/data/caelumManifest.ts) | pro hosting bez výpisu adresářů — čte `manifest.json` + `index.json` z uploaderu caelum (bez RAW) |
+| `s3` | [`S3DataSource`](src/data/s3.ts) | `ListObjectsV2` with `delimiter=/`, pagination, path-style or `style=virtual` |
+| `http-index` | [`HttpIndexDataSource`](src/data/httpIndex.ts) | JSON listing (nginx `autoindex_format json`, Caddy), otherwise parses the HTML listing |
+| `caelum` | [`CaelumApiDataSource`](src/data/caelumApi.ts) | straight from the camera via its API (`/api/files`); an IP is enough, default port 8000 — see below |
+| `caelum-manifest` | [`CaelumManifestDataSource`](src/data/caelumManifest.ts) | for hosting without directory listing — reads `manifest.json` + `index.json` from the caelum uploader (no RAW) |
 
-Nový zdroj = nová třída implementující `DataSource` + řádek v
+A new source = a new class implementing `DataSource` + a line in
 [`src/data/factory.ts`](src/data/factory.ts).
 
-### Rozložení souborů
+### File layout
 
-Výchozí odpovídá caelum (`storage/paths.py`):
+The default matches caelum (`storage/paths.py`):
 
 ```
-thumbnails/YYYY/MM/DD/YYYYMMDD-HHMMSS.webp   náhled
+thumbnails/YYYY/MM/DD/YYYYMMDD-HHMMSS.webp   preview
 thumbnails/YYYY/MM/DD/YYYYMMDD-HHMMSS.json   metadata
-raw/YYYY/MM/DD/YYYYMMDD-HHMMSS.dng           RAW (stahuje se až na požádání)
+raw/YYYY/MM/DD/YYYYMMDD-HHMMSS.dng           RAW (downloaded only on request)
 ```
 
-Jiná struktura se nastaví šablonou s `{YYYY}`, `{MM}`, `{DD}`, např.
+A different structure is set with a template using `{YYYY}`, `{MM}`, `{DD}`, e.g.
 `"layout": {"thumbnails": "{YYYY}/{YYYY}-{MM}-{DD}/webp/", "raw": "{YYYY}/{YYYY}-{MM}-{DD}/dng/"}`.
-Soubory se párují podle společného názvu bez přípony; čas snímku se bere z `YYYYMMDD-HHMMSS`
-v názvu. Viewer nejdřív načítá jen výpisy a malé JSONy (8 souběžně), RAW nikdy automaticky.
+Files are paired by their common name without the extension; the capture time comes from
+`YYYYMMDD-HHMMSS` in the name. The viewer loads listings first, then the small JSON
+sidecars (8 at a time, the whole day only on request), and never RAW files on its own.
 
 ## CORS
 
-Data jsou na jiné doméně než viewer, server proto musí posílat CORS hlavičky.
+The data lives on a different domain than the viewer, so the server must send CORS headers.
 
 S3 (`aws s3api put-bucket-cors --bucket allsky --cors-configuration file://cors.json`):
 
@@ -97,14 +110,14 @@ S3 (`aws s3api put-bucket-cors --bucket allsky --cors-configuration file://cors.
 { "CORSRules": [{ "AllowedOrigins": ["https://roman-dvorak.github.io"], "AllowedMethods": ["GET", "HEAD"], "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600 }] }
 ```
 
-Bucket musí povolit anonymní `s3:ListBucket` i `s3:GetObject`.
+The bucket must allow anonymous `s3:ListBucket` and `s3:GetObject`.
 
 nginx:
 
 ```nginx
 location /allsky/ {
     autoindex on;
-    autoindex_format json;          # strojově čitelný výpis (doporučeno)
+    autoindex_format json;          # machine-readable listing (recommended)
     add_header Access-Control-Allow-Origin "https://roman-dvorak.github.io" always;
 }
 ```
@@ -118,21 +131,21 @@ Apache:
 </Directory>
 ```
 
-## Přímo z kamery v lokální síti
+## Straight from a camera on the local network
 
-`?type=caelum&source=192.168.1.50` (nebo `192.168.1.50:8000`, `allsky.local`, celé URL) čte
-snímky přímo z API kamery. Podmínky:
+`?type=caelum&source=192.168.1.50` (or `192.168.1.50:8000`, `allsky.local`, a full URL)
+reads frames straight from the camera's API. Requirements:
 
-- kamera povoluje CORS pro origin vieweru — caelum má proměnnou `CAELUM_CORS_ORIGINS`
-  (výchozí `https://roman-dvorak.github.io`),
-- v konfiguraci kamery je `auth.preview_access: "public"` — stránka z jiné domény nedostane
-  přihlašovací cookie kamery,
-- prohlížeč: viewer běží na https, kamera na http. Chrome/Edge to u adres z lokální sítě
-  (10.x, 192.168.x, 172.16–31.x, `*.local`) povolí po jednorázovém potvrzení dotazu
-  „přístup k zařízením v místní síti“. Firefox a Safari takové požadavky blokují (mixed
-  content) — tam je potřeba kameru zpřístupnit přes https.
+- the camera allows CORS for the viewer's origin — caelum has the `CAELUM_CORS_ORIGINS`
+  variable (default `https://roman-dvorak.github.io`),
+- the camera config has `auth.preview_access: "public"` — a page from another domain does
+  not get the camera's login cookie,
+- the browser: the viewer runs on https, the camera on http. Chrome/Edge allow this for
+  local-network addresses (10.x, 192.168.x, 172.16–31.x, `*.local`) after a one-time
+  “access devices on your local network” prompt. Firefox and Safari block such requests
+  (mixed content) — there the camera has to be served over https.
 
-## Vývoj
+## Development
 
 ```bash
 npm install
@@ -141,7 +154,7 @@ npm test           # vitest
 npm run build      # dist/
 ```
 
-Lokální test nad daty kamery (Python server s CORS a HTML výpisem):
+Local test against camera data (a Python server with CORS and an HTML listing):
 
 ```bash
 python3 -c 'import http.server as h,functools as f
@@ -150,10 +163,14 @@ class H(h.SimpleHTTPRequestHandler):
 h.ThreadingHTTPServer(("",8765),f.partial(H,directory="../caelum/data")).serve_forever()'
 ```
 
-a otevřít `http://localhost:5173/?type=http-index&source=http://localhost:8765/`.
+then open `http://localhost:5173/?type=http-index&source=http://localhost:8765/`.
 
-## Nasazení
+UI texts live in [`src/lib/i18n.ts`](src/lib/i18n.ts) — one dictionary per language with
+the same keys as `en` (TypeScript reports a missing one). The styling follows the Caelum
+design system (tokens at the top of [`src/styles.css`](src/styles.css)).
 
-Workflow [`.github/workflows/pages.yml`](.github/workflows/pages.yml) při každém push do
-`main` spustí testy, sestaví aplikaci a nasadí ji na GitHub Pages. V repozitáři je potřeba
-jednou nastavit **Settings → Pages → Source: GitHub Actions**.
+## Deployment
+
+The [`.github/workflows/pages.yml`](.github/workflows/pages.yml) workflow runs the tests,
+builds the app and deploys it to GitHub Pages on every push to `main`. The repository needs
+**Settings → Pages → Source: GitHub Actions** set once.
