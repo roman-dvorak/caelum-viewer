@@ -19,7 +19,7 @@ export interface ViewParams {
   date?: string;
   time?: string;
   live?: string;
-  /** `simple` hides everything but the image, its overlay and the timeline. */
+  /** `simple` hides everything but the image, its overlay, playback and the timeline. */
   mode?: string;
 }
 

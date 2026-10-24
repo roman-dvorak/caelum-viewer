@@ -249,10 +249,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
   const changeMode = (next: Mode) => {
     if (next === "simple") {
-      // Nothing of these would be visible, so none of it may keep acting.
+      // Neither would be visible, so neither may keep acting.
       setFilters(NO_FILTERS);
       setTab(null);
-      setPlaying(false);
     }
     setMode(next);
   };
@@ -415,31 +414,29 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             showOverlay={overlay}
             live={live}
           />
-          {!simple && (
-            <div className="transport">
-              <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
-              <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
-              <button className="play" onClick={togglePlay} title={t("viewer.play")} disabled={!visible.length}>
-                <Icon name={playing ? "pause" : "play"} />
-              </button>
-              <button onClick={() => step(1)} title={t("viewer.next")}><Icon name="next" /></button>
-              <button onClick={() => step(Infinity)} title={t("viewer.last")}><Icon name="last" /></button>
-              <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title={t("viewer.speed")}>
-                {SPEEDS.map((s) => (
-                  <option key={s} value={s}>
-                    {t("viewer.fps", { n: s })}
-                  </option>
-                ))}
-              </select>
-              <span className="pos">
-                {current ? `${utcTime(current.t)} UTC` : "—"}
-                <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
-              </span>
-              <label className="small">
-                <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
-              </label>
-            </div>
-          )}
+          <div className="transport">
+            <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
+            <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
+            <button className="play" onClick={togglePlay} title={t("viewer.play")} disabled={!visible.length}>
+              <Icon name={playing ? "pause" : "play"} />
+            </button>
+            <button onClick={() => step(1)} title={t("viewer.next")}><Icon name="next" /></button>
+            <button onClick={() => step(Infinity)} title={t("viewer.last")}><Icon name="last" /></button>
+            <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title={t("viewer.speed")}>
+              {SPEEDS.map((s) => (
+                <option key={s} value={s}>
+                  {t("viewer.fps", { n: s })}
+                </option>
+              ))}
+            </select>
+            <span className="pos">
+              {current ? `${utcTime(current.t)} UTC` : "—"}
+              <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
+            </span>
+            <label className="small">
+              <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
+            </label>
+          </div>
           {date && (
             <Timeline
               date={date}
