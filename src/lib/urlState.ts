@@ -19,11 +19,13 @@ export interface ViewParams {
   date?: string;
   time?: string;
   live?: string;
+  /** `simple` hides everything but the image, its overlay and the timeline. */
+  mode?: string;
 }
 
 const KEYS: (keyof ViewParams)[] = [
   "catalog", "type", "source", "endpoint", "bucket", "prefix", "style", "name",
-  "link", "thumbnails", "raw", "camera", "date", "time", "live",
+  "link", "thumbnails", "raw", "camera", "date", "time", "live", "mode",
 ];
 
 export function readParams(search = location.search): ViewParams {

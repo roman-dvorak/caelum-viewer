@@ -29,6 +29,20 @@ interface Props {
 const LIVE_POLL_MS = 30_000;
 const SPEEDS = [2, 5, 10, 20, 30];
 const CHART_FIELDS_KEY = "caelum-viewer.chartFields";
+const MODE_KEY = "caelum-viewer.mode";
+
+type Mode = "simple" | "advanced";
+
+/** `?mode=` wins, then the last choice in this browser; advanced by default. */
+function initialMode(fromUrl: string | undefined): Mode {
+  if (fromUrl === "simple" || fromUrl === "advanced") return fromUrl;
+  try {
+    if (localStorage.getItem(MODE_KEY) === "simple") return "simple";
+  } catch {
+    /* storage unavailable */
+  }
+  return "advanced";
+}
 
 function loadChartFields(): string[] {
   try {
@@ -63,6 +77,8 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   /** Metadata of the whole day is fetched only on request (charts, filters, the load button). */
   const [metaRequested, setMetaRequested] = useState(false);
   const [overlay, setOverlay] = useState(true);
+  const [mode, setMode] = useState<Mode>(() => initialMode(initial.mode));
+  const simple = mode === "simple";
   const [chartFields, setChartFields] = useState(loadChartFields);
   /** Time of day (HH:MM:SS) to jump to once the next frame list arrives. */
   const pendingTime = useRef<string | undefined>(initial.time);
@@ -162,11 +178,21 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   useEffect(() => {
     updateParams({
       camera: fromCatalog ? cameraId : undefined,
-      date,
+      // Live always shows today, so a date would only make the link go stale.
+      date: live ? undefined : date,
       time: current && !live ? utcTime(current.t) : undefined,
       live: live ? "1" : undefined,
+      mode: simple ? "simple" : undefined,
     });
-  }, [fromCatalog, cameraId, date, current, live]);
+  }, [fromCatalog, cameraId, date, current, live, simple]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MODE_KEY, mode);
+    } catch {
+      /* storage unavailable */
+    }
+  }, [mode]);
 
   useEffect(() => {
     try {
@@ -219,6 +245,16 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
       setLive(true);
       setFilters(NO_FILTERS);
     }
+  };
+
+  const changeMode = (next: Mode) => {
+    if (next === "simple") {
+      // Nothing of these would be visible, so none of it may keep acting.
+      setFilters(NO_FILTERS);
+      setTab(null);
+      setPlaying(false);
+    }
+    setMode(next);
   };
 
   const togglePlay = () => {
@@ -343,6 +379,20 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
         <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
           {t("viewer.docs")}
         </a>
+        <span className="seg-switch" role="group" aria-label={t("viewer.mode")}>
+          {(["simple", "advanced"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={m === mode ? "on" : ""}
+              aria-pressed={m === mode}
+              title={t(m === "simple" ? "viewer.modeSimpleTitle" : "viewer.modeAdvancedTitle")}
+              onClick={() => changeMode(m)}
+            >
+              {t(m === "simple" ? "viewer.modeSimple" : "viewer.modeAdvanced")}
+            </button>
+          ))}
+        </span>
         <LangSwitch />
       </header>
 
@@ -355,7 +405,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
         </div>
       )}
 
-      <main className="layout">
+      <main className={simple ? "layout simple" : "layout"}>
         <div className="stage">
           <ImageViewer
             frame={current}
@@ -365,29 +415,31 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             showOverlay={overlay}
             live={live}
           />
-          <div className="transport">
-            <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
-            <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
-            <button className="play" onClick={togglePlay} title={t("viewer.play")} disabled={!visible.length}>
-              <Icon name={playing ? "pause" : "play"} />
-            </button>
-            <button onClick={() => step(1)} title={t("viewer.next")}><Icon name="next" /></button>
-            <button onClick={() => step(Infinity)} title={t("viewer.last")}><Icon name="last" /></button>
-            <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title={t("viewer.speed")}>
-              {SPEEDS.map((s) => (
-                <option key={s} value={s}>
-                  {t("viewer.fps", { n: s })}
-                </option>
-              ))}
-            </select>
-            <span className="pos">
-              {current ? `${utcTime(current.t)} UTC` : "—"}
-              <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
-            </span>
-            <label className="small">
-              <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
-            </label>
-          </div>
+          {!simple && (
+            <div className="transport">
+              <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
+              <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
+              <button className="play" onClick={togglePlay} title={t("viewer.play")} disabled={!visible.length}>
+                <Icon name={playing ? "pause" : "play"} />
+              </button>
+              <button onClick={() => step(1)} title={t("viewer.next")}><Icon name="next" /></button>
+              <button onClick={() => step(Infinity)} title={t("viewer.last")}><Icon name="last" /></button>
+              <select value={fps} onChange={(e) => setFps(Number(e.target.value))} title={t("viewer.speed")}>
+                {SPEEDS.map((s) => (
+                  <option key={s} value={s}>
+                    {t("viewer.fps", { n: s })}
+                  </option>
+                ))}
+              </select>
+              <span className="pos">
+                {current ? `${utcTime(current.t)} UTC` : "—"}
+                <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
+              </span>
+              <label className="small">
+                <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
+              </label>
+            </div>
+          )}
           {date && (
             <Timeline
               date={date}
@@ -400,46 +452,50 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
           )}
         </div>
 
-        <aside className="side">
-          <MetadataPanel frame={current} meta={current ? metaMap.get(current.id) : undefined} source={archive.source} />
-          <FilterPanel
-            filters={filters}
-            available={availableFields}
-            total={frames.length}
-            shown={visible.length}
-            metaStatus={metaStatus}
-            onLoadMetadata={() => setMetaRequested(true)}
-            onChange={(f) => {
-              setLive(false);
-              setFilters(f);
-            }}
-          />
-        </aside>
-
-        <section className="bottom">
-          <div className="tabs">
-            <button className={tab === "gallery" ? "on" : ""} aria-expanded={tab === "gallery"} onClick={() => toggleTab("gallery")}>
-              {t("viewer.gallery", { n: visible.length })}
-            </button>
-            <button className={tab === "charts" ? "on" : ""} aria-expanded={tab === "charts"} onClick={() => toggleTab("charts")} title={t("viewer.chartsTitle")}>
-              {t("viewer.charts")}
-            </button>
-          </div>
-          {tab === "charts" && (
-            <Charts
-              frames={visible}
-              metaMap={metaMap}
-              fields={chartFieldsShown}
+        {!simple && (
+          <aside className="side">
+            <MetadataPanel frame={current} meta={current ? metaMap.get(current.id) : undefined} source={archive.source} />
+            <FilterPanel
+              filters={filters}
               available={availableFields}
-              currentId={current?.id}
-              onSelect={select}
-              onFieldsChange={setChartFields}
+              total={frames.length}
+              shown={visible.length}
+              metaStatus={metaStatus}
+              onLoadMetadata={() => setMetaRequested(true)}
+              onChange={(f) => {
+                setLive(false);
+                setFilters(f);
+              }}
             />
-          )}
-          {tab === "gallery" && (
-            <Gallery frames={visible} metaMap={metaMap} source={archive.source} currentId={current?.id} onSelect={select} />
-          )}
-        </section>
+          </aside>
+        )}
+
+        {!simple && (
+          <section className="bottom">
+            <div className="tabs">
+              <button className={tab === "gallery" ? "on" : ""} aria-expanded={tab === "gallery"} onClick={() => toggleTab("gallery")}>
+                {t("viewer.gallery", { n: visible.length })}
+              </button>
+              <button className={tab === "charts" ? "on" : ""} aria-expanded={tab === "charts"} onClick={() => toggleTab("charts")} title={t("viewer.chartsTitle")}>
+                {t("viewer.charts")}
+              </button>
+            </div>
+            {tab === "charts" && (
+              <Charts
+                frames={visible}
+                metaMap={metaMap}
+                fields={chartFieldsShown}
+                available={availableFields}
+                currentId={current?.id}
+                onSelect={select}
+                onFieldsChange={setChartFields}
+              />
+            )}
+            {tab === "gallery" && (
+              <Gallery frames={visible} metaMap={metaMap} source={archive.source} currentId={current?.id} onSelect={select} />
+            )}
+          </section>
+        )}
       </main>
     </div>
   );

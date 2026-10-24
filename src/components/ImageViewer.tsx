@@ -71,6 +71,17 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }:
   }, [zoomAt]);
 
   const values = meta ? numericFields(meta) : {};
+  const hasJson = !!(frame?.meta ?? frame?.rawMeta);
+  const overlayEls = meta?.overlay_elements;
+  const files: [string, boolean | undefined][] = frame
+    ? [
+        [t("viewer.fileThumb"), !!frame.thumb],
+        [t("viewer.fileRaw"), !!frame.raw],
+        // Only the sidecar tells whether there are overlay elements.
+        [t("viewer.fileOverlay"), !hasJson ? false : meta ? (Array.isArray(overlayEls) ? overlayEls.length > 0 : !!overlayEls) : undefined],
+        [t("viewer.fileJson"), hasJson],
+      ]
+    : [];
   const period = skyPeriod(meta);
 
   return (
@@ -111,6 +122,17 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }:
             <div>
               {utcDate(frame.t)} <b>{utcTime(frame.t)}</b> UTC
             </div>
+          </div>
+          <div className="overlay overlay-tr" aria-label={t("viewer.files")}>
+            {files.map(([name, has]) => (
+              <span
+                key={name}
+                className={has ? "file-tag has" : has === false ? "file-tag" : "file-tag unknown"}
+                title={t(has ? "viewer.fileYes" : has === false ? "viewer.fileNo" : "viewer.fileUnknown", { name })}
+              >
+                {name}
+              </span>
+            ))}
           </div>
           {meta && (
             <div className="overlay overlay-bl">

@@ -105,11 +105,15 @@ code { display: block; font: 12px/1.5 var(--font-mono); color: var(--ink-muted);
 .viewer-img { width: 100%; height: 100%; object-fit: contain; transform-origin: center; display: block; }
 .viewer-empty, .viewer-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-muted); }
 .viewer-msg { inset: auto 0 40% 0; }
-.viewer-spinner { position: absolute; top: 10px; right: 10px; width: 16px; height: 16px; border: 2px solid #fff4; border-top-color: var(--amber); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.viewer-spinner { position: absolute; top: 40px; right: 10px; width: 16px; height: 16px; border: 2px solid #fff4; border-top-color: var(--amber); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .overlay { position: absolute; padding: 6px 10px; font: 12px/1.5 var(--font-mono); text-shadow: 0 1px 2px #000, 0 0 6px #000; pointer-events: none; font-variant-numeric: tabular-nums; }
 .overlay-tl { top: 4px; left: 4px; }
 .overlay-bl { bottom: 4px; left: 4px; }
+.overlay-tr { top: 4px; right: 4px; display: flex; gap: 4px; pointer-events: auto; }
+.file-tag { padding: 0 5px; border: 1px solid #fff3; border-radius: var(--radius-sm); color: #fff6; text-decoration: line-through; }
+.file-tag.has { border-color: var(--amber); color: var(--ink); text-decoration: none; }
+.file-tag.unknown { border-style: dashed; text-decoration: none; }
 .overlay-title { font: 600 15px/1.4 var(--font-display); }
 .viewer-tools { position: absolute; bottom: 8px; right: 8px; display: flex; gap: 4px; }
 .viewer-tools button { background: rgba(7, 10, 16, 0.7); min-width: 32px; }
@@ -258,7 +262,12 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 }
 
 /* language switch */
-.lang-switch { display: inline-flex; gap: 2px; }
+.lang-switch, .seg-switch { display: inline-flex; gap: 2px; }
+.seg-switch button { padding: 1px 8px; font-size: 12px; color: #a9b8d0; }
+.topbar .seg-switch button { background: none; border-color: transparent; }
+.topbar .seg-switch button.on { border-color: var(--nebula); color: var(--ink); }
+.layout.simple { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage"; }
+.layout.simple .viewer { height: min(80vh, 100vw); }
 .lang-switch button { padding: 1px 6px; font: 500 11px/1.6 var(--font-mono); color: var(--ink-muted); background: none; border-color: transparent; border-radius: var(--radius-sm); }
 .lang-switch button.on { color: var(--ink); border-color: var(--border); }
 .topbar .lang-switch button { background: none; border-color: transparent; }
