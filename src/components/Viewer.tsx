@@ -7,8 +7,9 @@ import { applyFilters, isFiltering, needsMetadata, NO_FILTERS, type Filters } fr
 import { useMetadata, usePreload } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
 import { rememberCamera } from "../lib/recent";
-import { nearestIndex, parseTimeOnDate, todayUtc, utcTime } from "../lib/time";
+import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
 import { updateParams, type ViewParams } from "../lib/urlState";
+import { AboutDialog } from "./AboutDialog";
 import { Charts } from "./Charts";
 import { ExportPanel } from "./ExportPanel";
 import { FilterPanel } from "./FilterPanel";
@@ -18,7 +19,7 @@ import { ImageViewer } from "./ImageViewer";
 import { MetadataPanel } from "./MetadataPanel";
 import { LangSwitch } from "./LangSwitch";
 import { Timeline } from "./Timeline";
-import { t, tn } from "../lib/i18n";
+import { ago, t, tn } from "../lib/i18n";
 
 interface Props {
   cameras: CameraConfig[];
@@ -93,6 +94,11 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   /** Section of the day that playback loops in and export takes (advanced mode). */
   const [range, setRange] = useState<Range | null>(() => initialRange(initial));
   const [chartFields, setChartFields] = useState(loadChartFields);
+  const [about, setAbout] = useState(false);
+  /** Clock for the live staleness warning, advanced by every live poll. */
+  const [now, setNow] = useState(Date.now);
+  /** Live with nothing today: time of the newest frame of the last day with data (null: none at all). */
+  const [prevDayLastT, setPrevDayLastT] = useState<number | null>();
   /** Time of day (HH:MM:SS) to jump to once the next frame list arrives. */
   const pendingTime = useRef<string | undefined>(initial.time);
 
@@ -159,6 +165,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
     if (!live) return;
     setPlaying(false);
     const tick = () => {
+      setNow(Date.now());
       const today = todayUtc();
       if (date !== today) {
         setDate(today);
@@ -177,6 +184,26 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
     const id = setInterval(tick, LIVE_POLL_MS);
     return () => clearInterval(id);
   }, [live, archive, date]);
+
+  // Live and nothing today yet → how old is the newest frame of an earlier day?
+  useEffect(() => {
+    setPrevDayLastT(undefined);
+    if (!live || !dates || loadingFrames || frames.length) return;
+    const prev = dates.filter((d) => d < todayUtc()).at(-1);
+    if (!prev) {
+      setPrevDayLastT(null);
+      return;
+    }
+    const ctl = new AbortController();
+    archive
+      .listFrames(prev, ctl.signal)
+      .then((list) => setPrevDayLastT(list.at(-1)?.t ?? null))
+      .catch(() => {});
+    return () => ctl.abort();
+  }, [live, dates, loadingFrames, frames.length, archive]);
+
+  const lastT = frames.length ? frames[frames.length - 1].t : prevDayLastT;
+  const stale = !live || loadingFrames || lastT === undefined ? null : lastT === null ? "none" : liveStaleness(lastT, now);
 
   // Current frame filtered out → move to the nearest one that's still shown.
   useEffect(() => {
@@ -425,8 +452,12 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
             </button>
           ))}
         </span>
+        <button type="button" onClick={() => setAbout(true)} title={t("viewer.aboutTitle")}>
+          {t("viewer.about")}
+        </button>
         <LangSwitch />
       </header>
+      {about && <AboutDialog onClose={() => setAbout(false)} />}
 
       {error && (
         <div className="error">
@@ -434,6 +465,17 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
           <button className="link" onClick={() => setError(undefined)}>
             ×
           </button>
+        </div>
+      )}
+
+      {stale && (
+        <div className={`stale-warning ${stale}`} role="alert">
+          {stale === "none"
+            ? t("viewer.staleNone")
+            : t(stale === "day" ? "viewer.staleDay" : "viewer.staleHour", {
+                time: `${utcDate(lastT!)} ${utcTime(lastT!).slice(0, 5)}`,
+                age: ago(lastT!, now),
+              })}
         </div>
       )}
 

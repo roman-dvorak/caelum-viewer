@@ -42,3 +42,11 @@ export function nearestIndex(items: { t: number }[], t: number): number {
   if (lo > 0 && t - items[lo - 1].t <= items[lo].t - t) return lo - 1;
   return lo;
 }
+
+const HOUR = 3_600_000;
+
+/** How stale the newest frame is in live mode: older than a day, an hour, or fresh (null). */
+export function liveStaleness(lastT: number, now = Date.now()): "day" | "hour" | null {
+  const age = now - lastT;
+  return age > 24 * HOUR ? "day" : age > HOUR ? "hour" : null;
+}

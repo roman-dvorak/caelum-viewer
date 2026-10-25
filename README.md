@@ -23,7 +23,8 @@ developed by [AstroMeters](https://astrometers.eu/).
   playback loops within it and it can be exported in the browser as a video (MP4, encoded
   with WebCodecs, optionally with the camera name and time burnt in) or as a ZIP of the
   previews (optionally with the JSON metadata)
-- live mode — reloads the list every 30 s and shows the newest frame
+- live mode — reloads the list every 30 s and shows the newest frame; warns when the newest
+  frame is older than an hour (camera may have stopped) and, more urgently, older than a day
 - gallery of WebP previews, paginated by UTC hour
 - charts of any numeric metadata with a synchronised cursor; a vertical line follows the
   frame on screen, a click in a chart opens the matching frame
