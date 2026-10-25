@@ -42,15 +42,17 @@ function initialRange(p: ViewParams): Range | null {
   return from !== undefined && to !== undefined && from <= to ? { from, to } : null;
 }
 
-/** `?mode=` wins, then the last choice in this browser; advanced by default. */
-function initialMode(fromUrl: string | undefined): Mode {
-  if (fromUrl === "simple" || fromUrl === "advanced") return fromUrl;
+/** `?mode=` wins (a link with a section needs advanced), then the last
+ *  choice in this browser; simple by default. */
+function initialMode(p: ViewParams): Mode {
+  if (p.mode === "simple" || p.mode === "advanced") return p.mode;
+  if (initialRange(p)) return "advanced";
   try {
-    if (localStorage.getItem(MODE_KEY) === "simple") return "simple";
+    if (localStorage.getItem(MODE_KEY) === "advanced") return "advanced";
   } catch {
     /* storage unavailable */
   }
-  return "advanced";
+  return "simple";
 }
 
 function loadChartFields(): string[] {
@@ -86,7 +88,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   /** Metadata of the whole day is fetched only on request (charts, filters, the load button). */
   const [metaRequested, setMetaRequested] = useState(false);
   const [overlay, setOverlay] = useState(true);
-  const [mode, setMode] = useState<Mode>(() => initialMode(initial.mode));
+  const [mode, setMode] = useState<Mode>(() => initialMode(initial));
   const simple = mode === "simple";
   /** Section of the day that playback loops in and export takes (advanced mode). */
   const [range, setRange] = useState<Range | null>(() => initialRange(initial));
@@ -199,17 +201,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
       from: range ? utcTime(range.from) : undefined,
       to: range ? utcTime(range.to) : undefined,
       live: live ? "1" : undefined,
-      mode: simple ? "simple" : undefined,
+      mode: simple ? undefined : "advanced",
     });
   }, [fromCatalog, cameraId, date, current, range, live, simple]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(MODE_KEY, mode);
-    } catch {
-      /* storage unavailable */
-    }
-  }, [mode]);
 
   useEffect(() => {
     try {
@@ -278,12 +272,18 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
 
   const changeMode = (next: Mode) => {
     if (next === "simple") {
-      // Neither would be visible, so neither may keep acting.
+      // None of these would be visible, so none may keep acting.
       setFilters(NO_FILTERS);
       setTab(null);
       setRange(null);
     }
     setMode(next);
+    // Only an explicit choice is remembered, not a mode a shared link opened in.
+    try {
+      localStorage.setItem(MODE_KEY, next);
+    } catch {
+      /* storage unavailable */
+    }
   };
 
   const togglePlay = () => {

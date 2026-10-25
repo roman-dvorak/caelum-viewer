@@ -22,7 +22,7 @@ export interface ViewParams {
   from?: string;
   to?: string;
   live?: string;
-  /** `simple` hides everything but the image, its overlay, playback and the timeline. */
+  /** `advanced` shows all panels; `simple` (the default) only the image, its overlay, playback and the timeline. */
   mode?: string;
 }
 

@@ -16,7 +16,8 @@ developed by [AstroMeters](https://astrometers.eu/).
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
 - download of the original RAW (DNG), links to the preview and the JSON metadata
 - time-lapse playback (2–30 frames/s) with preloading of the next frames
-- simple mode (image, overlay, playback and timeline only) and advanced mode with all panels
+- simple mode (image, overlay, playback and timeline only; the default) and advanced mode
+  with all panels; the choice is remembered in the browser
 - tags in the image corner showing whether the frame has a preview, RAW, overlay elements and JSON
 - a section of the day (`[` / `]` at the current frame, or Shift+drag on the timeline):
   playback loops within it and it can be exported in the browser as a video (MP4, encoded
