@@ -1,6 +1,7 @@
 import { StrictMode, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { initClarity } from "./lib/analytics";
 import { getLang, subscribeLang } from "./lib/i18n";
 import "./styles.css";
 
@@ -11,6 +12,7 @@ function Root() {
 }
 
 document.documentElement.lang = getLang();
+initClarity();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Root />

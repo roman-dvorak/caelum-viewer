@@ -186,3 +186,8 @@ design system (tokens at the top of [`src/styles.css`](src/styles.css)).
 The [`.github/workflows/pages.yml`](.github/workflows/pages.yml) workflow runs the tests,
 builds the app and deploys it to GitHub Pages on every push to `main`. The repository needs
 **Settings → Pages → Source: GitHub Actions** set once.
+
+Usage analytics ([Microsoft Clarity](https://clarity.microsoft.com/)) are enabled only when
+the build gets a project ID: set the repository secret `CLARITY_PROJECT_ID`
+(**Settings → Secrets and variables → Actions**). Locally, `VITE_CLARITY_ID=<id> npm run build`;
+without it no tracking script is loaded.
