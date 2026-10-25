@@ -123,6 +123,14 @@ code { display: block; font: 12px/1.5 var(--font-mono); color: var(--ink-muted);
 .transport .play:hover:not(:disabled) { background: var(--amber-light); border-color: var(--amber-light); }
 .transport .pos { font-family: var(--font-mono); font-variant-numeric: tabular-nums; margin-left: 6px; }
 .transport label { margin-left: auto; }
+.range-tools { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.range-tools > button { font-family: var(--font-mono); min-width: 28px; }
+.range-chip { font: 12px/1.6 var(--font-mono); padding: 1px 2px 1px 8px; border: 1px solid var(--amber); border-radius: var(--radius-sm); color: var(--amber-light); white-space: nowrap; }
+.export .hint { margin: 0 0 10px; }
+.export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 10px; }
+.export-progress { display: flex; align-items: center; gap: 8px; }
+.export-progress progress { flex: 1; min-width: 0; accent-color: var(--amber); }
+.export-error { color: var(--error); }
 .timeline { position: relative; }
 .timeline canvas { display: block; cursor: pointer; touch-action: none; }
 .timeline-hover { position: absolute; top: -20px; transform: translateX(-50%); background: var(--surface-300); border: 1px solid var(--border); padding: 0 4px; border-radius: var(--radius-sm); font: 11px/1.5 var(--font-mono); pointer-events: none; }

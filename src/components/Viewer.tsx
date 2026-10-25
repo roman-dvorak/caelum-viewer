@@ -3,13 +3,14 @@ import { CameraArchive, type Frame } from "../data/archive";
 import { createDataSource } from "../data/factory";
 import type { CameraConfig } from "../data/types";
 import { VIEWER_DOCS_URL } from "../lib/brand";
-import { applyFilters, needsMetadata, NO_FILTERS, type Filters } from "../lib/filters";
+import { applyFilters, isFiltering, needsMetadata, NO_FILTERS, type Filters } from "../lib/filters";
 import { useMetadata, usePreload } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
 import { rememberCamera } from "../lib/recent";
 import { nearestIndex, parseTimeOnDate, todayUtc, utcTime } from "../lib/time";
 import { updateParams, type ViewParams } from "../lib/urlState";
 import { Charts } from "./Charts";
+import { ExportPanel } from "./ExportPanel";
 import { FilterPanel } from "./FilterPanel";
 import { Gallery } from "./Gallery";
 import { Icon } from "./Icon";
@@ -32,6 +33,14 @@ const CHART_FIELDS_KEY = "caelum-viewer.chartFields";
 const MODE_KEY = "caelum-viewer.mode";
 
 type Mode = "simple" | "advanced";
+type Range = { from: number; to: number };
+
+function initialRange(p: ViewParams): Range | null {
+  if (!p.date || !p.from || !p.to || p.live === "1") return null;
+  const from = parseTimeOnDate(p.date, p.from);
+  const to = parseTimeOnDate(p.date, p.to);
+  return from !== undefined && to !== undefined && from <= to ? { from, to } : null;
+}
 
 /** `?mode=` wins, then the last choice in this browser; advanced by default. */
 function initialMode(fromUrl: string | undefined): Mode {
@@ -79,6 +88,8 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const [overlay, setOverlay] = useState(true);
   const [mode, setMode] = useState<Mode>(() => initialMode(initial.mode));
   const simple = mode === "simple";
+  /** Section of the day that playback loops in and export takes (advanced mode). */
+  const [range, setRange] = useState<Range | null>(() => initialRange(initial));
   const [chartFields, setChartFields] = useState(loadChartFields);
   /** Time of day (HH:MM:SS) to jump to once the next frame list arrives. */
   const pendingTime = useRef<string | undefined>(initial.time);
@@ -96,6 +107,10 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const visibleIds = useMemo(() => new Set(visible.map((f) => f.id)), [visible]);
   const currentIndex = visible.findIndex((f) => f.id === currentId);
   const current = currentIndex >= 0 ? visible[currentIndex] : frames.find((f) => f.id === currentId);
+  const inRange = useMemo(
+    () => (range ? visible.filter((f) => f.t >= range.from && f.t <= range.to) : visible),
+    [visible, range],
+  );
 
   // --- dates of the selected camera -----------------------------------------
   useEffect(() => {
@@ -181,10 +196,12 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
       // Live always shows today, so a date would only make the link go stale.
       date: live ? undefined : date,
       time: current && !live ? utcTime(current.t) : undefined,
+      from: range ? utcTime(range.from) : undefined,
+      to: range ? utcTime(range.to) : undefined,
       live: live ? "1" : undefined,
       mode: simple ? "simple" : undefined,
     });
-  }, [fromCatalog, cameraId, date, current, live, simple]);
+  }, [fromCatalog, cameraId, date, current, range, live, simple]);
 
   useEffect(() => {
     try {
@@ -225,10 +242,20 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
     [visible, select],
   );
 
+  /** Moves one end of the section to the current frame (the whole day's other end when there is none yet). */
+  const setRangeEdge = (edge: "from" | "to") => {
+    if (!current || !frames.length) return;
+    const cur = range ?? { from: frames[0].t, to: frames[frames.length - 1].t };
+    const next = { ...cur, [edge]: current.t };
+    setLive(false);
+    setRange(next.from <= next.to ? next : { from: current.t, to: current.t });
+  };
+
   const changeDate = (next: string | undefined) => {
     if (!next || next === date) return;
     setLive(false);
     setPlaying(false);
+    setRange(null);
     if (current) pendingTime.current = utcTime(current.t);
     setDate(next);
   };
@@ -236,6 +263,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const changeCamera = (id: string) => {
     if (current) pendingTime.current = utcTime(current.t);
     setPlaying(false);
+    setRange(null);
     setCameraId(id);
   };
 
@@ -244,6 +272,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
     else {
       setLive(true);
       setFilters(NO_FILTERS);
+      setRange(null);
     }
   };
 
@@ -252,6 +281,7 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
       // Neither would be visible, so neither may keep acting.
       setFilters(NO_FILTERS);
       setTab(null);
+      setRange(null);
     }
     setMode(next);
   };
@@ -264,9 +294,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
   const prevDate = dates && date ? [...dates].reverse().find((d) => d < date) : undefined;
   const nextDate = dates && date ? dates.find((d) => d > date) : undefined;
 
-  // Playback: loops over the visible (filtered) frames.
-  const visibleRef = useRef(visible);
-  visibleRef.current = visible;
+  // Playback: loops over the visible (filtered) frames of the section.
+  const visibleRef = useRef(inRange);
+  visibleRef.current = inRange;
   useEffect(() => {
     if (!playing) return;
     const id = setInterval(() => {
@@ -304,6 +334,9 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
       else if (e.key === " ") togglePlay();
       else if (e.key === "l") toggleLive();
       else if (e.key === "o") setOverlay((o) => !o);
+      else if (e.key === "[" && !simple) setRangeEdge("from");
+      else if (e.key === "]" && !simple) setRangeEdge("to");
+      else if (e.key === "Escape" && range) setRange(null);
       else return;
       e.preventDefault();
     };
@@ -433,6 +466,18 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
               {current ? `${utcTime(current.t)} UTC` : "—"}
               <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
             </span>
+            {!simple && (
+              <span className="range-tools">
+                <button onClick={() => setRangeEdge("from")} title={t("range.start")} disabled={!current}>[</button>
+                <button onClick={() => setRangeEdge("to")} title={t("range.end")} disabled={!current}>]</button>
+                {range && (
+                  <span className="range-chip" title={t("range.label")}>
+                    {utcTime(range.from)}–{utcTime(range.to)}
+                    <button className="link" onClick={() => setRange(null)} title={t("range.clear")}>×</button>
+                  </span>
+                )}
+              </span>
+            )}
             <label className="small">
               <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
             </label>
@@ -444,7 +489,12 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
               visible={visibleIds}
               metaMap={metaMap}
               currentT={current?.t}
+              range={range}
               onSeek={seek}
+              onRange={simple ? undefined : (from, to) => {
+                setLive(false);
+                setRange({ from, to });
+              }}
             />
           )}
         </div>
@@ -463,6 +513,15 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
                 setLive(false);
                 setFilters(f);
               }}
+            />
+            <ExportPanel
+              frames={inRange}
+              range={range}
+              filtered={isFiltering(filters)}
+              source={archive.source}
+              cameraName={camera.name}
+              fps={fps}
+              speeds={SPEEDS}
             />
           </aside>
         )}

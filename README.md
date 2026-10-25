@@ -16,6 +16,12 @@ developed by [AstroMeters](https://astrometers.eu/).
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
 - download of the original RAW (DNG), links to the preview and the JSON metadata
 - time-lapse playback (2–30 frames/s) with preloading of the next frames
+- simple mode (image, overlay, playback and timeline only) and advanced mode with all panels
+- tags in the image corner showing whether the frame has a preview, RAW, overlay elements and JSON
+- a section of the day (`[` / `]` at the current frame, or Shift+drag on the timeline):
+  playback loops within it and it can be exported in the browser as a video (MP4, encoded
+  with WebCodecs, optionally with the camera name and time burnt in) or as a ZIP of the
+  previews (optionally with the JSON metadata)
 - live mode — reloads the list every 30 s and shows the newest frame
 - gallery of WebP previews, paginated by UTC hour
 - charts of any numeric metadata with a synchronised cursor; a vertical line follows the
@@ -29,7 +35,8 @@ developed by [AstroMeters](https://astrometers.eu/).
 - English and Czech UI
 
 Keys: `←/→` (with Shift by 10), `Home/End`, Space = playback, `F` = fullscreen,
-`+/−/0` = zoom, `L` = live, `O` = overlay.
+`+/−/0` = zoom, `L` = live, `O` = overlay, `[` / `]` = section start / end at the current
+frame, `Esc` = cancel the section.
 
 ## Usage
 
@@ -49,6 +56,7 @@ https://roman-dvorak.github.io/caelum-viewer/?catalog=https://example.org/camera
 ```
 
 Other parameters: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
+`from=` / `to=HH:MM[:SS]` (section of the day), `mode=simple|advanced`,
 `name=<name>` and `link=<URL of the camera's web interface>` (direct source only),
 `thumbnails=` / `raw=` (layout template, see below), `lang=en|cs` (UI language; by default
 it follows the browser and the EN/CS switch remembers the choice).
@@ -103,6 +111,8 @@ sidecars (8 at a time, the whole day only on request), and never RAW files on it
 ## CORS
 
 The data lives on a different domain than the viewer, so the server must send CORS headers.
+They have to cover the image files too, not only the listings — the video and ZIP export
+download the previews with `fetch`.
 
 S3 (`aws s3api put-bucket-cors --bucket allsky --cors-configuration file://cors.json`):
 

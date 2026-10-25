@@ -18,6 +18,9 @@ export interface ViewParams {
   raw?: string;
   date?: string;
   time?: string;
+  /** Section of the day (HH:MM:SS) that playback and export are limited to. */
+  from?: string;
+  to?: string;
   live?: string;
   /** `simple` hides everything but the image, its overlay, playback and the timeline. */
   mode?: string;
@@ -25,7 +28,7 @@ export interface ViewParams {
 
 const KEYS: (keyof ViewParams)[] = [
   "catalog", "type", "source", "endpoint", "bucket", "prefix", "style", "name",
-  "link", "thumbnails", "raw", "camera", "date", "time", "live", "mode",
+  "link", "thumbnails", "raw", "camera", "date", "time", "from", "to", "live", "mode",
 ];
 
 export function readParams(search = location.search): ViewParams {

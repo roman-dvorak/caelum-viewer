@@ -6,7 +6,7 @@ export interface RecentSource {
   label: string;
   /** Catalog title when the camera came from a catalog. */
   catalog?: string;
-  /** Query string without the view position (date / time / live). */
+  /** Query string without the view position (date / time / section / live). */
   search: string;
   kind: string;
   at: number;
@@ -35,7 +35,7 @@ function save(list: RecentSource[]): RecentSource[] {
 
 /** Records the camera being viewed; `params` must already name the camera for catalog sources. */
 export function rememberCamera(label: string, catalog: string | undefined, params: ViewParams = readParams()): void {
-  const { date: _d, time: _t, live: _l, ...rest } = params;
+  const { date: _d, time: _t, from: _f, to: _to, live: _l, ...rest } = params;
   const search = buildSearch(rest);
   if (!search) return;
   const kind = rest.catalog ? "catalog" : (rest.type ?? "");

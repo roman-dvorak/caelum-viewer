@@ -9,19 +9,25 @@ interface Props {
   visible: Set<string>;
   metaMap: Map<string, FrameMeta>;
   currentT?: number;
+  /** Section playback and export are limited to. */
+  range?: { from: number; to: number } | null;
   onSeek: (t: number) => void;
+  /** Shift+drag marks a section; without it the timeline only seeks. */
+  onRange?: (from: number, to: number) => void;
 }
 
 const DAY = 86_400_000;
 const HEIGHT = 56;
 
 /** 24 h UTC strip: one tick per frame (colored by sky period, dimmed when
- *  filtered out), the current frame marker; click or drag to seek. */
-export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: Props) {
+ *  filtered out), the current frame marker and the selected section; click
+ *  or drag to seek, Shift+drag to select a section. */
+export function Timeline({ date, frames, visible, metaMap, currentT, range, onSeek, onRange }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<{ x: number; t: number } | null>(null);
-  const dragging = useRef(false);
+  /** Seeking, or the anchor time of a section being drawn. */
+  const dragging = useRef<false | "seek" | { anchor: number }>(false);
   const start = dayStart(date);
 
   useEffect(() => {
@@ -43,6 +49,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
     const muted = css.getPropertyValue("--muted").trim() || "#8a9db8";
     const line = css.getPropertyValue("--line").trim() || "#2a3a52";
     const accent = css.getPropertyValue("--accent").trim() || "#5a8ee8";
+    const amber = css.getPropertyValue("--amber").trim() || "#e8a13a";
     g.clearRect(0, 0, width, HEIGHT);
 
     const barTop = 6;
@@ -60,6 +67,17 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
       g.fillRect(Math.floor(x), barTop, Math.max(1, width / 1440), barH);
     }
     g.globalAlpha = 1;
+
+    if (range) {
+      const x0 = ((range.from - start) / DAY) * width;
+      const x1 = ((range.to - start) / DAY) * width;
+      g.fillStyle = amber;
+      g.globalAlpha = 0.18;
+      g.fillRect(x0, barTop - 4, Math.max(2, x1 - x0), barH + 8);
+      g.globalAlpha = 1;
+      g.fillRect(Math.round(x0) - 1, barTop - 4, 2, barH + 8);
+      g.fillRect(Math.round(x1) - 1, barTop - 4, 2, barH + 8);
+    }
 
     g.fillStyle = muted;
     g.strokeStyle = muted;
@@ -82,7 +100,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
       g.lineTo(x, 7);
       g.fill();
     }
-  }, [width, frames, visible, metaMap, currentT, start]);
+  }, [width, frames, visible, metaMap, currentT, range, start]);
 
   const timeAt = (clientX: number) => {
     const r = canvas.current!.getBoundingClientRect();
@@ -96,14 +114,20 @@ export function Timeline({ date, frames, visible, metaMap, currentT, onSeek }: P
         ref={canvas}
         style={{ width: "100%", height: HEIGHT }}
         onPointerDown={(e) => {
-          dragging.current = true;
           e.currentTarget.setPointerCapture(e.pointerId);
-          onSeek(timeAt(e.clientX).t);
+          const at = timeAt(e.clientX).t;
+          if (e.shiftKey && onRange) dragging.current = { anchor: at };
+          else {
+            dragging.current = "seek";
+            onSeek(at);
+          }
         }}
         onPointerMove={(e) => {
           const h = timeAt(e.clientX);
           setHover(h);
-          if (dragging.current) onSeek(h.t);
+          const d = dragging.current;
+          if (d === "seek") onSeek(h.t);
+          else if (d && Math.abs(h.t - d.anchor) > 60_000) onRange?.(Math.min(d.anchor, h.t), Math.max(d.anchor, h.t));
         }}
         onPointerUp={() => (dragging.current = false)}
         onPointerLeave={() => setHover(null)}
