@@ -8,6 +8,7 @@ const PATHS = {
   pause: "M6 4h4v16H6zM14 4h4v16h-4z",
   plus: "M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z",
   minus: "M5 11h14v2H5z",
+  chevron: "M9.4 5 8 6.4l5.6 5.6L8 17.6 9.4 19l7-7z",
   fullscreen: "M4 4h6v2H6v4H4zM14 4h6v6h-2V6h-4zM4 14h2v4h4v2H4zM18 14h2v6h-6v-2h4z",
 };
 

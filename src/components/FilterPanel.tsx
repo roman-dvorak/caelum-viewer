@@ -2,6 +2,7 @@ import type { Filters } from "../lib/filters";
 import { NO_FILTERS, isFiltering } from "../lib/filters";
 import { fieldInfo, PERIODS } from "../lib/metadata";
 import { t, tn } from "../lib/i18n";
+import { Panel } from "./Panel";
 
 interface Props {
   filters: Filters;
@@ -24,18 +25,23 @@ export function FilterPanel({ filters, available, total, shown, metaStatus, onLo
     });
 
   return (
-    <section className="panel">
-      <h3>
-        {t("filter.title")}
-        <span className="muted small">
-          {shown} / {tn("frames", total)}
-        </span>
-        {isFiltering(filters) && (
-          <button className="link" onClick={() => onChange(NO_FILTERS)}>
-            {t("filter.reset")}
-          </button>
-        )}
-      </h3>
+    <Panel
+      id="filter"
+      defaultOpen={false}
+      title={t("filter.title")}
+      extra={
+        <>
+          <span className="muted small">
+            {shown} / {tn("frames", total)}
+          </span>
+          {isFiltering(filters) && (
+            <button className="link" onClick={() => onChange(NO_FILTERS)}>
+              {t("filter.reset")}
+            </button>
+          )}
+        </>
+      }
+    >
       {metaStatus === "off" && total > 0 && (
         <div className="meta-request">
           <span className="hint">{t("filter.metaHint")}</span>
@@ -113,6 +119,6 @@ export function FilterPanel({ filters, available, total, shown, metaStatus, onLo
           {t("filter.rawOnly")}
         </label>
       </div>
-    </section>
+    </Panel>
   );
 }

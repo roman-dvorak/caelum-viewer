@@ -4,6 +4,7 @@ import type { DataSource } from "../data/types";
 import { canEncodeVideo, exportName, exportVideo, exportZip, saveBlob, type ExportProgress } from "../lib/exporter";
 import { t, tn } from "../lib/i18n";
 import { utcTime } from "../lib/time";
+import { Panel } from "./Panel";
 
 interface Props {
   /** Frames to export: the section (or the whole day) after the filters. */
@@ -56,13 +57,18 @@ export function ExportPanel({ frames, range, filtered, source, cameraName, fps: 
   const empty = !frames.length;
 
   return (
-    <section className="panel export">
-      <h3>
-        {t("export.title")}
+    <Panel
+      id="export"
+      defaultOpen={false}
+      className="export"
+      title={t("export.title")}
+      extra={
         <span className="muted small">
           {range ? `${utcTime(range.from)}–${utcTime(range.to)} UTC` : t("export.wholeDay")} · {tn("frames", frames.length)}
+          {progress && ` · ${progress.done}/${progress.total}`}
         </span>
-      </h3>
+      }
+    >
       <p className="hint">
         {range ? t("export.rangeSet") : t("export.rangeHint")}
         {filtered && ` ${t("export.filtered")}`}
@@ -122,6 +128,6 @@ export function ExportPanel({ frames, range, filtered, source, cameraName, fps: 
         </div>
       )}
       {message && <p className={message.error ? "hint export-error" : "hint"}>{message.text}</p>}
-    </section>
+    </Panel>
   );
 }

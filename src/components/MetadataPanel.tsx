@@ -4,6 +4,7 @@ import type { Frame, FrameMeta } from "../data/archive";
 import { fieldInfo, flattenAll } from "../lib/metadata";
 import { utcDate, utcTime } from "../lib/time";
 import { t } from "../lib/i18n";
+import { Panel } from "./Panel";
 
 interface Props {
   frame?: Frame;
@@ -21,10 +22,15 @@ export function MetadataPanel({ frame, meta, source }: Props) {
   if (!frame) return null;
   const rows = shown ? flattenAll(shown) : [];
   return (
-    <section className="panel">
-      <h3>
-        {utcDate(frame.t)} {utcTime(frame.t)} <span className="muted small">UTC</span>
-      </h3>
+    <Panel
+      id="metadata"
+      defaultOpen
+      title={
+        <>
+          {utcDate(frame.t)} {utcTime(frame.t)} <span className="muted small">UTC</span>
+        </>
+      }
+    >
       <div className="downloads">
         {frame.raw && (
           <a className="btn primary" href={source.url(frame.raw)} download>
@@ -56,6 +62,6 @@ export function MetadataPanel({ frame, meta, source }: Props) {
       ) : (
         <div className="muted small">{frame.meta || frame.rawMeta ? t("meta.loading") : t("meta.none")}</div>
       )}
-    </section>
+    </Panel>
   );
 }
