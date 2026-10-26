@@ -35,6 +35,8 @@ developed by [AstroMeters](https://astrometers.eu/).
   “Load metadata” is pressed
 - recently viewed cameras on the start screen (kept in the browser's localStorage)
 - English and Czech UI
+- installable as an app (PWA): “Install” in Chrome / Edge, “Add to Home Screen” on iOS and
+  Android; the app itself opens offline, camera data is always loaded live
 
 Keys: `←/→` (with Shift by 10), `Home/End`, Space = playback, `F` = fullscreen,
 `+/−/0` = zoom, `L` = live, `O` = overlay, `[` / `]` = section start / end at the current
