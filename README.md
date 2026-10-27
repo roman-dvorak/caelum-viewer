@@ -11,6 +11,10 @@ developed by [AstroMeters](https://astrometers.eu/).
 ## Features
 
 - pick a camera (catalog), a day and a time; the view is kept in the URL (bookmark / share a link)
+- overview of a catalog with several cameras: every camera's preview side by side, all at
+  one shared time set by a single timeline at the bottom (click / drag, ←/→, playback, live);
+  each tile opens its camera in the full viewer at the frame it shows, and “All cameras” in
+  the top bar goes back
 - 24 h UTC timeline coloured by sky period (day / twilights / night); click and drag to seek
 - frame detail with zoom (wheel, +/−), drag to pan and fullscreen
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
@@ -33,12 +37,13 @@ developed by [AstroMeters](https://astrometers.eu/).
 - metadata on request: on open only the frame on screen and its neighbours are loaded; the
   whole day loads once the charts are opened, a period / value filter is used, or
   “Load metadata” is pressed
-- recently viewed cameras on the start screen (kept in the browser's localStorage)
+- recently viewed cameras and catalog overviews on the start screen (kept in the browser's
+  localStorage); pinned entries stay at the top and are never pushed out or cleared
 - English and Czech UI
 - installable as an app (PWA): “Install” in Chrome / Edge, “Add to Home Screen” on iOS and
   Android; the app itself opens offline, camera data is always loaded live
 
-Keys: `←/→` (with Shift by 10), `Home/End`, Space = playback, `F` = fullscreen,
+Keys: `←/→` (with Shift by 10; in the overview by one shared step), `Home/End`, Space = playback, `F` = fullscreen,
 `+/−/0` = zoom, `L` = live, `O` = overlay, `[` / `]` = section start / end at the current
 frame, `Esc` = cancel the section.
 
@@ -59,7 +64,7 @@ Camera catalog:
 https://roman-dvorak.github.io/caelum-viewer/?catalog=https://example.org/cameras.json
 ```
 
-Other parameters: `camera=<id>`, `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
+Other parameters: `camera=<id>` (without it a catalog of several cameras shows the overview), `date=YYYY-MM-DD`, `time=HH:MM[:SS]` (UTC), `live=1`,
 `from=` / `to=HH:MM[:SS]` (section of the day), `mode=simple|advanced`,
 `name=<name>` and `link=<URL of the camera's web interface>` (direct source only),
 `thumbnails=` / `raw=` (layout template, see below), `lang=en|cs` (UI language; by default
@@ -67,11 +72,21 @@ it follows the browser and the EN/CS switch remembers the choice).
 
 ### Catalog
 
-See [`public/examples/cameras.json`](public/examples/cameras.json). Each camera has an `id`,
+See [`public/examples/cameras.json`](public/examples/cameras.json). The whole group of cameras
+is named by `title` (`name` is accepted too) and optionally described by `description`; the
+title heads the overview and the top bar and labels the group in the recent list.
+A catalog with more than one camera opens on the overview; `camera=<id>` opens one camera.
+
+Each camera has an `id`,
 a `name`, a `source` and optionally a `link` (the camera's web interface, shown in the top
 bar as “Camera ↗”), a `layout` and any other station metadata. Relative URLs resolve
 against the catalog's URL. The `cameras.json` written by the caelum uploader
 (`{cameras:[{slug,name,manifest}]}`) is accepted as well.
+
+The catalog is meant to be a static file that doesn't change as the cameras record: it
+describes the cameras and where their data lives, nothing more. The viewer finds dates and
+the newest frames from the data sources themselves, so values that go stale (`latest_thumbnail`,
+`updated_at`, …) don't belong in it and are ignored if present.
 
 No S3 keys belong in the URL or the catalog — the viewer expects publicly readable data.
 

@@ -3,7 +3,9 @@ import type { CameraConfig, SourceConfig } from "./types";
 import { t } from "../lib/i18n";
 
 export interface Catalog {
+  /** Name of the whole group of cameras (`title`, or `name`). */
   title?: string;
+  description?: string;
   cameras: CameraConfig[];
 }
 
@@ -36,7 +38,8 @@ export function normalizeCatalog(data: Record<string, unknown>, baseUrl: string)
     return { ...c, id, name, source, link } as CameraConfig;
   });
   if (!cameras.length) throw new Error(t("err.emptyCatalog"));
-  return { title: typeof data.title === "string" ? data.title : undefined, cameras };
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  return { title: str(data.title) ?? str(data.name), description: str(data.description), cameras };
 }
 
 function resolveSource(source: SourceConfig, baseUrl: string): SourceConfig {

@@ -316,3 +316,33 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 .about dd { margin: 0; font-family: var(--font-mono); }
 .about-links { display: flex; flex-wrap: wrap; gap: 16px; }
 .about form { display: flex; justify-content: flex-end; }
+
+/* recent: pinned entries */
+.recent .pin { flex: none; background: none; border: none; padding: 4px; color: var(--ink-dim); opacity: 0.5; }
+.recent li:hover .pin, .recent .pin:focus-visible { opacity: 1; }
+.recent .pin:hover { color: var(--ink); }
+.recent li.pinned .pin { opacity: 1; color: var(--amber); }
+.recent li.pinned + li:not(.pinned) { border-top-color: var(--border); }
+
+/* overview: all cameras of a catalog */
+.topbar .overview-btn { display: inline-flex; align-items: center; gap: 6px; }
+.overview-desc { margin: 12px 16px 0; color: var(--ink-muted); max-width: 900px; }
+.tiles { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; padding: 16px; align-content: start; }
+.cam-tile { display: flex; flex-direction: column; background: var(--surface-200); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; min-width: 0; }
+.cam-tile.is-live { border-color: var(--amber-dim); }
+.cam-tile-img { position: relative; display: block; width: 100%; aspect-ratio: 1; max-height: calc(100vh - 260px); padding: 0; border: none; border-radius: 0; background: #000; }
+.cam-tile-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.cam-tile.far .cam-tile-img img { opacity: 0.35; }
+.cam-tile-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink-muted); padding: 16px; }
+.cam-tile-foot { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+.cam-tile-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cam-tile-name { font: 600 14px/1.4 var(--font-display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cam-tile-time { font: 12px/1.5 var(--font-mono); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.cam-tile.far .cam-tile-offset { color: var(--amber-light); }
+.cam-tile-stale { font-size: 12px; color: var(--amber-light); }
+.cam-tile-stale.day, .cam-tile-stale.none, .cam-tile-error { font-size: 12px; color: #f5b4ab; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.overview-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-direction: column; gap: 8px; padding: 10px 16px 6px; background: var(--surface-100); border-top: 1px solid var(--border); }
+@media (max-width: 900px) {
+  .tiles { padding: 8px; gap: 8px; }
+  .overview-bar { padding: 8px 8px 4px; }
+}

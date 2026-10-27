@@ -18,6 +18,8 @@ const en = {
   "start.recent": "Recently viewed cameras",
   "start.recentClear": "Clear",
   "start.recentRemove": "Remove from list",
+  "start.recentPin": "Pin to the top",
+  "start.recentUnpin": "Unpin",
   "start.recentEmpty": "Cameras you open will show up here next time.",
   "start.open": "Open a data source",
   "start.openOther": "Open another source",
@@ -62,9 +64,12 @@ const en = {
   "kind.s3": "s3",
   "kind.caelum": "camera",
   "kind.caelum-manifest": "manifest",
+  "kind.group": "group",
 
   "feature.timeline": "24 h UTC timeline",
   "feature.timeline.text": "coloured by sky period — day, twilights, night",
+  "feature.overview": "All cameras at once",
+  "feature.overview.text": "a catalog's cameras side by side on one shared timeline",
   "feature.timelapse": "Time-lapse",
   "feature.timelapse.text": "2–30 frames/s playback with preloading",
   "feature.live": "Live",
@@ -88,6 +93,21 @@ const en = {
   "app.loadingCatalog": "Loading catalog…",
   "app.catalogError": "Catalog: {msg}",
   "viewer.home": "Start page",
+  "viewer.overview": "All cameras",
+  "viewer.overviewTitle": "Overview of all cameras in the catalog",
+  "overview.liveTitle": "Live — the newest frame of every camera (L)",
+  "overview.loading": "loading cameras {done}/{total}",
+  "overview.speed": "Playback speed",
+  "overview.sps": "{n} steps/s",
+  "overview.newest": "newest frames",
+  "overview.open": "Open",
+  "overview.openTitle": "Open {name}",
+  "overview.min": "{n} min",
+  "overview.hmin": "{h} h {m} min",
+  "overview.noFrames": "No frames this day",
+  "overview.error": "Cannot load the camera",
+  "overview.stale": "last frame {age}",
+  "overview.staleNone": "no frame today",
   "viewer.cameraLink": "Camera ↗",
   "viewer.prevDay": "Previous day with data",
   "viewer.nextDay": "Next day with data",
@@ -226,6 +246,8 @@ const cs: Record<Key, string> = {
   "start.recent": "Naposledy navštívené kamery",
   "start.recentClear": "Vymazat",
   "start.recentRemove": "Odebrat ze seznamu",
+  "start.recentPin": "Připnout nahoru",
+  "start.recentUnpin": "Odepnout",
   "start.recentEmpty": "Kamery, které otevřete, se tu příště objeví v seznamu naposledy navštívených.",
   "start.open": "Otevřít zdroj dat",
   "start.openOther": "Otevřít jiný zdroj",
@@ -270,9 +292,12 @@ const cs: Record<Key, string> = {
   "kind.s3": "s3",
   "kind.caelum": "kamera",
   "kind.caelum-manifest": "manifest",
+  "kind.group": "skupina",
 
   "feature.timeline": "Časová osa 24 h UTC",
   "feature.timeline.text": "obarvená podle fáze dne — den, soumraky, noc",
+  "feature.overview": "Všechny kamery naráz",
+  "feature.overview.text": "kamery katalogu vedle sebe na jedné společné časové ose",
   "feature.timelapse": "Time-lapse",
   "feature.timelapse.text": "přehrávání 2–30 snímků/s s předběžným načítáním",
   "feature.live": "Live",
@@ -295,6 +320,21 @@ const cs: Record<Key, string> = {
   "app.loadingCatalog": "Načítám katalog…",
   "app.catalogError": "Katalog: {msg}",
   "viewer.home": "Úvodní stránka",
+  "viewer.overview": "Všechny kamery",
+  "viewer.overviewTitle": "Přehled všech kamer katalogu",
+  "overview.liveTitle": "Live — nejnovější snímek každé kamery (L)",
+  "overview.loading": "načítám kamery {done}/{total}",
+  "overview.speed": "Rychlost přehrávání",
+  "overview.sps": "{n} kroků/s",
+  "overview.newest": "nejnovější snímky",
+  "overview.open": "Otevřít",
+  "overview.openTitle": "Otevřít {name}",
+  "overview.min": "{n} min",
+  "overview.hmin": "{h} h {m} min",
+  "overview.noFrames": "Tento den bez snímků",
+  "overview.error": "Kameru se nepodařilo načíst",
+  "overview.stale": "poslední snímek {age}",
+  "overview.staleNone": "dnes žádný snímek",
   "viewer.cameraLink": "Kamera ↗",
   "viewer.prevDay": "Předchozí den s daty",
   "viewer.nextDay": "Další den s daty",
@@ -426,9 +466,15 @@ const cs: Record<Key, string> = {
 
 const DICTS: Record<Lang, Record<Key, string>> = { en, cs };
 
-const PLURALS: Record<Lang, Record<"frames", Plural>> = {
-  en: { frames: { one: "{n} frame", other: "{n} frames" } },
-  cs: { frames: { one: "{n} snímek", few: "{n} snímky", many: "{n} snímku", other: "{n} snímků" } },
+const PLURALS: Record<Lang, Record<"frames" | "cameras", Plural>> = {
+  en: {
+    frames: { one: "{n} frame", other: "{n} frames" },
+    cameras: { one: "{n} camera", other: "{n} cameras" },
+  },
+  cs: {
+    frames: { one: "{n} snímek", few: "{n} snímky", many: "{n} snímku", other: "{n} snímků" },
+    cameras: { one: "{n} kamera", few: "{n} kamery", many: "{n} kamery", other: "{n} kamer" },
+  },
 };
 
 const STORAGE_KEY = "caelum-viewer:lang";
@@ -491,7 +537,7 @@ export function tMaybe(key: string): string | undefined {
   return (DICTS[current] as Record<string, string>)[key];
 }
 
-export function tn(key: "frames", n: number): string {
+export function tn(key: "frames" | "cameras", n: number): string {
   const forms = PLURALS[current][key];
   const cat = new Intl.PluralRules(current).select(n);
   return fill(forms[cat] ?? forms.other, { n });

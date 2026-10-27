@@ -1,5 +1,6 @@
 {
   "title": "All-sky kamery",
+  "description": "Síť all-sky kamer — přehled všech kamer na jedné stránce.",
   "cameras": [
     {
       "id": "camera01",

@@ -26,6 +26,8 @@ interface Props {
   title?: string;
   fromCatalog: boolean;
   initial: ViewParams;
+  /** Back to the overview of all the catalog's cameras (catalogs with more than one). */
+  onOverview?: () => void;
 }
 
 const LIVE_POLL_MS = 30_000;
@@ -66,7 +68,7 @@ function loadChartFields(): string[] {
   return DEFAULT_CHART_FIELDS;
 }
 
-export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
+export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Props) {
   const [cameraId, setCameraId] = useState(
     cameras.some((c) => c.id === initial.camera) ? initial.camera! : cameras[0].id,
   );
@@ -390,6 +392,11 @@ export function Viewer({ cameras, title, fromCatalog, initial }: Props) {
           <img src="./favicon.svg" alt="" />
           <span>{title ?? "Caelum Viewer"}</span>
         </a>
+        {onOverview && (
+          <button type="button" className="overview-btn" onClick={onOverview} title={t("viewer.overviewTitle")}>
+            <Icon name="grid" /> {t("viewer.overview")}
+          </button>
+        )}
         {cameras.length > 1 ? (
           <select value={cameraId} onChange={(e) => changeCamera(e.target.value)}>
             {cameras.map((c) => (

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { SOURCE_TYPES } from "../data/factory";
 import { DEVELOPER_NAME, DEVELOPER_URL, DOCS_URL, REPO_URL, VIEWER_DOCS_URL } from "../lib/brand";
 import { ago, t, tMaybe } from "../lib/i18n";
-import { clearRecent, forgetSource, loadRecent, type RecentSource } from "../lib/recent";
+import { clearRecent, forgetSource, loadRecent, togglePin, type RecentSource } from "../lib/recent";
+import { Icon } from "./Icon";
 import { buildSearch, type ViewParams } from "../lib/urlState";
 import { LangSwitch } from "./LangSwitch";
 
-const FEATURES = ["timeline", "timelapse", "live", "charts", "filters", "raw"] as const;
+const FEATURES = ["overview", "timeline", "timelapse", "live", "charts", "filters", "raw"] as const;
 
 const KEYS: [string, Parameters<typeof t>[0]][] = [
   ["← →", "key.frame"],
@@ -67,13 +68,22 @@ export function StartScreen({ error }: { error?: string }) {
             <section className="panel">
               <div className="panel-head">
                 <h2>{t("start.recent")}</h2>
-                <button type="button" className="link small" onClick={() => setRecent(clearRecent())}>
+                <button type="button" className="link small" onClick={() => setRecent(clearRecent())} disabled={recent.every((r) => r.pinned)}>
                   {t("start.recentClear")}
                 </button>
               </div>
               <ul className="recent">
                 {recent.map((r) => (
-                  <li key={r.search}>
+                  <li key={r.search} className={r.pinned ? "pinned" : undefined}>
+                    <button
+                      type="button"
+                      className="pin"
+                      aria-pressed={!!r.pinned}
+                      title={t(r.pinned ? "start.recentUnpin" : "start.recentPin")}
+                      onClick={() => setRecent(togglePin(r.search))}
+                    >
+                      <Icon name="pin" />
+                    </button>
                     <a href={r.search}>
                       <span className="tag">{kindLabel(r.kind)}</span>
                       <span className="recent-label">
