@@ -12,9 +12,11 @@ developed by [AstroMeters](https://astrometers.eu/).
 
 - pick a camera (catalog), a day and a time; the view is kept in the URL (bookmark / share a link)
 - overview of a catalog with several cameras: every camera's preview side by side, all at
-  one shared time set by a single timeline at the bottom (click / drag, ←/→, playback, live);
-  each tile opens its camera in the full viewer at the frame it shows, and “All cameras” in
-  the top bar goes back
+  one shared time set by a single plain timeline at the bottom (click / drag, ←/→, playback,
+  live); a camera with no frame within an hour of that time shows none; the magnifier (or a
+  click on the image) enlarges a camera over the whole page — Esc or a click closes it; each
+  tile opens its camera in the full viewer at the frame it shows, and “All cameras” in the
+  top bar goes back
 - 24 h UTC timeline coloured by sky period (day / twilights / night); click and drag to seek
 - frame detail with zoom (wheel, +/−), drag to pan and fullscreen
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table

@@ -25,11 +25,15 @@ interface Props {
 
 const LIVE_POLL_MS = 30_000;
 const SPEEDS = [1, 2, 5, 10];
-/** A tile whose nearest frame is further than this from the shared time is dimmed. */
+/** A tile whose nearest frame is further than this from the shared time is dimmed… */
 const FAR_MS = 15 * 60_000;
+/** …and further than this, not shown at all: the camera has nothing for that time. */
+const HIDE_MS = 60 * 60_000;
 /** Offsets below this aren't worth showing next to the frame time. */
 const NEAR_MS = 90_000;
 const NO_META = new Map<string, FrameMeta>();
+const NO_FRAMES: Frame[] = [];
+const NO_IDS = new Set<string>();
 
 /**
  * All cameras of a catalog side by side, each showing its frame nearest to
@@ -50,6 +54,9 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
   const [playing, setPlaying] = useState(false);
   const [fps, setFps] = useState(2);
   const [about, setAbout] = useState(false);
+  /** Camera shown enlarged over the page, by index. */
+  const [zoomed, setZoomed] = useState<number>();
+  const bar = useRef<HTMLElement>(null);
   const [now, setNow] = useState(Date.now);
   /** Time of day (HH:MM:SS) to show once the next day is chosen. */
   const pendingTime = useRef<string | undefined>(initial.time);
@@ -163,10 +170,11 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
   // --- the shared timeline -------------------------------------------------------
   const slots = useMemo(() => timeSlots(frames.map((f) => f ?? [])).map((x) => ({ t: x })), [frames]);
   const allFrames = useMemo(() => frames.flatMap((f) => f ?? []).sort((a, b) => a.t - b.t), [frames]);
-  const allIds = useMemo(() => new Set(allFrames.map((f) => f.id)), [allFrames]);
-  const shown = frames.map((list) =>
+  const nearest = frames.map((list) =>
     !list?.length ? undefined : at === undefined ? list[list.length - 1] : list[nearestIndex(list, at)],
   );
+  /** Frame each tile shows: none when the camera has nothing within an hour of the shared time. */
+  const shown = nearest.map((f) => (f && at !== undefined && Math.abs(f.t - at) > HIDE_MS ? undefined : f));
   const newestShown = Math.max(...shown.map((f) => f?.t ?? -Infinity));
   const cursor = at ?? (Number.isFinite(newestShown) ? newestShown : undefined);
   const loaded = frames.filter((f) => f !== null).length;
@@ -233,6 +241,28 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     ),
   );
 
+  const tiles: TileProps[] = cameras.map((camera, i) => {
+    const f = shown[i];
+    const list = frames[i];
+    const offset = f && at !== undefined ? f.t - at : 0;
+    const lastT = list?.at(-1)?.t;
+    return {
+      camera,
+      frame: f,
+      src: f?.thumb ? archives[i].source.url(f.thumb) : undefined,
+      loading: list === null,
+      error: errors[i],
+      noneNear: !f && !!nearest[i],
+      offset: Math.abs(offset) >= NEAR_MS ? offset : 0,
+      far: Math.abs(offset) > FAR_MS,
+      live,
+      stale: live && list ? (lastT === undefined ? "none" : liveStaleness(lastT, now)) : null,
+      lastT,
+      now,
+      onOpen: () => onOpen(camera.id, live ? undefined : f ? utcTime(f.t) : at !== undefined ? utcTime(at) : undefined),
+    };
+  });
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input, select, textarea")) return;
@@ -243,6 +273,7 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       else if (e.key === "End") step(Infinity);
       else if (e.key === " ") togglePlay();
       else if (e.key === "l") toggleLive();
+      else if (e.key === "Escape" && zoomed !== undefined) setZoomed(undefined);
       else return;
       e.preventDefault();
     };
@@ -289,33 +320,15 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       {description && <p className="overview-desc">{description}</p>}
 
       <main className="tiles">
-        {cameras.map((cam, i) => {
-          const f = shown[i];
-          const list = frames[i];
-          const offset = f && at !== undefined ? f.t - at : 0;
-          const lastT = list?.at(-1)?.t;
-          const stale = live && list ? (lastT === undefined ? "none" : liveStaleness(lastT, now)) : null;
-          return (
-            <Tile
-              key={cam.id}
-              camera={cam}
-              frame={f}
-              src={f?.thumb ? archives[i].source.url(f.thumb) : undefined}
-              loading={list === null}
-              error={errors[i]}
-              offset={Math.abs(offset) >= NEAR_MS ? offset : 0}
-              far={Math.abs(offset) > FAR_MS}
-              live={live}
-              stale={stale}
-              lastT={lastT}
-              now={now}
-              onOpen={() => onOpen(cam.id, live || !f ? undefined : utcTime(f.t))}
-            />
-          );
-        })}
+        {tiles.map((p, i) => (
+          <Tile key={p.camera.id} {...p} onZoom={() => setZoomed(i)} />
+        ))}
       </main>
+      {zoomed !== undefined && tiles[zoomed] && (
+        <Lightbox {...tiles[zoomed]} bottom={bar.current?.offsetHeight ?? 0} onClose={() => setZoomed(undefined)} />
+      )}
 
-      <footer className="overview-bar">
+      <footer className="overview-bar" ref={bar}>
         <div className="transport">
           <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
           <button onClick={() => step(-1)} title={t("viewer.prev")}><Icon name="prev" /></button>
@@ -336,7 +349,8 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
           </span>
         </div>
         {date && (
-          <Timeline date={date} frames={allFrames} visible={allIds} metaMap={NO_META} currentT={cursor} onSeek={seek} />
+          // A plain time axis: frame ticks of several cameras would only be noise here.
+          <Timeline date={date} frames={NO_FRAMES} visible={NO_IDS} metaMap={NO_META} currentT={cursor} onSeek={seek} />
         )}
       </footer>
     </div>
@@ -349,6 +363,8 @@ interface TileProps {
   src?: string;
   loading: boolean;
   error?: string;
+  /** The camera has frames this day, but none within an hour of the shared time. */
+  noneNear: boolean;
   /** Shown frame minus the shared time, ms (0 when close enough not to mention). */
   offset: number;
   far: boolean;
@@ -359,27 +375,27 @@ interface TileProps {
   onOpen: () => void;
 }
 
-function Tile({ camera, frame, src, loading, error, offset, far, live, stale, lastT, now, onOpen }: TileProps) {
+function Tile(p: TileProps & { onZoom: () => void }) {
+  const { camera, src, error, far, live, stale, lastT, now, onOpen, onZoom } = p;
   const img = useLoadedImage(src);
-  const minutes = Math.round(offset / 60_000);
   return (
     <article className={`cam-tile${far ? " far" : ""}${live ? " is-live" : ""}`}>
-      <button type="button" className="cam-tile-img" onClick={onOpen} title={t("overview.openTitle", { name: camera.name })}>
-        {img.shown && <img src={img.shown} alt={camera.name} />}
-        {!img.shown && (
-          <span className="cam-tile-msg">
-            {loading ? t("viewer.loadingList") : error ? t("overview.error") : !frame ? t("overview.noFrames") : !src ? t("viewer.noPreview") : img.error ? t("viewer.previewFailed") : ""}
-          </span>
+      <div className="cam-tile-img">
+        <button type="button" className="cam-tile-hit" onClick={onZoom} title={t("overview.zoomTitle", { name: camera.name })}>
+          {img.shown && <img src={img.shown} alt={camera.name} />}
+          {!img.shown && <span className="cam-tile-msg">{message(p, img.error)}</span>}
+          {img.loading && <span className="viewer-spinner" />}
+        </button>
+        {img.shown && (
+          <button type="button" className="cam-tile-zoom" onClick={onZoom} title={t("overview.zoomTitle", { name: camera.name })}>
+            <Icon name="zoom" />
+          </button>
         )}
-        {img.loading && <span className="viewer-spinner" />}
-      </button>
+      </div>
       <div className="cam-tile-foot">
         <div className="cam-tile-text">
           <strong className="cam-tile-name">{camera.name}</strong>
-          <span className="cam-tile-time">
-            {frame ? `${live ? `${utcDate(frame.t)} ` : ""}${utcTime(frame.t)} UTC` : "—"}
-            {minutes !== 0 && <span className="cam-tile-offset"> ({minutes > 0 ? "+" : "−"}{formatMinutes(Math.abs(minutes))})</span>}
-          </span>
+          <FrameTime {...p} />
           {stale && (
             <span className={`cam-tile-stale ${stale}`}>
               {stale === "none" ? t("overview.staleNone") : t("overview.stale", { age: ago(lastT!, now) })}
@@ -393,6 +409,52 @@ function Tile({ camera, frame, src, loading, error, offset, far, live, stale, la
       </div>
     </article>
   );
+}
+
+/** Full-page view of one camera; follows the shared time like its tile. */
+function Lightbox(p: TileProps & { bottom: number; onClose: () => void }) {
+  const { camera, src, onOpen, onClose, bottom } = p;
+  const img = useLoadedImage(src);
+  return (
+    <div className="lightbox" style={{ bottom }} role="dialog" aria-modal="true" aria-label={camera.name} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="lightbox-head">
+        <strong className="cam-tile-name">{camera.name}</strong>
+        <FrameTime {...p} />
+        <span className="lightbox-tools">
+          <button type="button" className="btn" onClick={onOpen}>
+            {t("overview.open")}
+          </button>
+          <button type="button" onClick={onClose} title={t("overview.close")}>
+            <Icon name="close" />
+          </button>
+        </span>
+      </div>
+      <div className="lightbox-img" onClick={(e) => e.target === e.currentTarget && onClose()}>
+        {img.shown ? <img src={img.shown} alt={camera.name} /> : <span className="cam-tile-msg">{message(p, img.error)}</span>}
+        {img.loading && <span className="viewer-spinner" />}
+      </div>
+    </div>
+  );
+}
+
+function FrameTime({ frame, offset, live }: TileProps) {
+  const minutes = Math.round(offset / 60_000);
+  return (
+    <span className="cam-tile-time">
+      {frame ? `${live ? `${utcDate(frame.t)} ` : ""}${utcTime(frame.t)} UTC` : "—"}
+      {minutes !== 0 && <span className="cam-tile-offset"> ({minutes > 0 ? "+" : "−"}{formatMinutes(Math.abs(minutes))})</span>}
+    </span>
+  );
+}
+
+/** Why there is no picture. */
+function message({ loading, error, frame, noneNear, src }: TileProps, imgError: boolean): string {
+  if (loading) return t("viewer.loadingList");
+  if (error) return t("overview.error");
+  if (noneNear) return t("overview.noneNear");
+  if (!frame) return t("overview.noFrames");
+  if (!src) return t("viewer.noPreview");
+  return imgError ? t("viewer.previewFailed") : "";
 }
 
 /** "12 min", "3 h 05 min". */
