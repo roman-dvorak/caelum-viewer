@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createDataSource } from "../data/factory";
 import { fetchJson } from "../data/fetch";
 import type { CameraConfig } from "../data/types";
-import { t } from "../lib/i18n";
+import { t, tn } from "../lib/i18n";
 import { Icon } from "./Icon";
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
@@ -21,6 +21,35 @@ function describe(data: Record<string, unknown>) {
   };
 }
 
+const SHOWN = new Set(["observatory_name", "camera_type", "owner", "description", "location", "name", "slug", "version", "dates", "sky", "manifest", "link", "source", "layout", "id"]);
+
+/** Every other plain field the manifest or catalog entry carries, so nothing the server publishes is hidden. */
+function extraRows(data: Record<string, unknown>): [string, string][] {
+  return Object.entries(data)
+    .filter(([k, v]) => !SHOWN.has(k) && (typeof v === "string" || typeof v === "number" || typeof v === "boolean"))
+    .map(([k, v]) => [k.replace(/_/g, " "), String(v)]);
+}
+
+interface DayRow {
+  date: string;
+  count?: number;
+  raw?: number;
+  latest?: string;
+}
+
+function dayRows(manifest: Record<string, unknown> | undefined): DayRow[] {
+  const list = Array.isArray(manifest?.dates) ? (manifest!.dates as Record<string, unknown>[]) : [];
+  return list
+    .map((d) => ({
+      date: String(d.date ?? ""),
+      count: typeof d.thumbnail_count === "number" ? d.thumbnail_count : undefined,
+      raw: typeof d.raw_count === "number" ? d.raw_count : undefined,
+      latest: typeof d.latest_thumbnail === "string" ? d.latest_thumbnail.split("/").pop()?.replace(/\.[^.]+$/, "") : undefined,
+    }))
+    .filter((d) => d.date)
+    .reverse();
+}
+
 /** The directory index of an https archive, when there is one to open in the browser. */
 export function fileIndexUrl(camera: CameraConfig): string | undefined {
   if (camera.source.type !== "http-index" && camera.source.type !== "caelum-manifest") return undefined;
@@ -35,6 +64,7 @@ export function CameraInfo({ camera }: { camera: CameraConfig }) {
   const ref = useRef<HTMLSpanElement>(null);
   const source = useMemo(() => createDataSource(camera.source), [camera]);
   const index = fileIndexUrl(camera);
+  const manifestUrl = index && source.url("manifest.json");
 
   useEffect(() => {
     if (!open) return;
@@ -64,11 +94,17 @@ export function CameraInfo({ camera }: { camera: CameraConfig }) {
   }, [open, manifest, source]);
 
   const info = { ...describe(manifest ?? {}), ...Object.fromEntries(Object.entries(describe(camera)).filter(([, v]) => v)) };
+  const days = dayRows(manifest);
+  const total = days.reduce((n, d) => n + (d.count ?? 0), 0);
+  const lens = (manifest?.sky as { lens?: Record<string, unknown> } | undefined)?.lens;
+  const extras = extraRows({ ...manifest, ...camera });
   const rows: [string, string | undefined][] = [
     [t("info.observatory"), info.observatory],
     [t("info.type"), info.type],
     [t("info.owner"), info.owner],
     [t("info.location"), info.location],
+    ...extras,
+    ...(days.length ? ([[t("info.days"), `${days.length} · ${tn("frames", total)}`]] as [string, string][]) : []),
   ];
 
   return (
@@ -94,10 +130,38 @@ export function CameraInfo({ camera }: { camera: CameraConfig }) {
               <dd>{source.label}</dd>
             </div>
           </dl>
+          {lens && (
+            <details>
+              <summary>{t("info.lens")}</summary>
+              <pre className="small">{JSON.stringify(lens, null, 1).replace(/[{}"]/g, "").trim()}</pre>
+            </details>
+          )}
+          {days.length > 0 && (
+            <details>
+              <summary>{t("info.daysList")}</summary>
+              <table className="cam-info-days small">
+                <tbody>
+                  {days.map((d) => (
+                    <tr key={d.date}>
+                      <td>{d.date}</td>
+                      <td>{d.count ?? ""}</td>
+                      <td>{d.raw ? `RAW ${d.raw}` : ""}</td>
+                      <td>{d.latest?.split("-")[1]?.replace(/(\d\d)(\d\d)(\d\d)/, "$1:$2:$3") ?? ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
           <div className="cam-info-links">
             {camera.link && (
               <a href={camera.link} target="_blank" rel="noreferrer">
                 {t("viewer.cameraLink")} ↗
+              </a>
+            )}
+            {manifestUrl && (
+              <a href={manifestUrl} target="_blank" rel="noreferrer">
+                manifest.json ↗
               </a>
             )}
             {index && (

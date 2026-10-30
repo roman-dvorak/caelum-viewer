@@ -401,3 +401,9 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 .cam-info-links { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; }
 .cam-tile .cam-info-bubble { top: auto; bottom: calc(100% + 8px); }
 @media (max-width: 900px) { .topbar .cam-info { position: static; } .topbar .cam-info-bubble { left: 12px; right: 12px; width: auto; } }
+.cam-info-bubble { max-height: 70vh; overflow: auto; }
+.cam-info-bubble details { font-size: 13px; }
+.cam-info-bubble summary { cursor: pointer; color: var(--ink-muted); }
+.cam-info-bubble pre { margin: 4px 0 0; white-space: pre-wrap; font-family: var(--font-mono); }
+.cam-info-days { border-collapse: collapse; margin-top: 4px; font-family: var(--font-mono); }
+.cam-info-days td { padding: 1px 10px 1px 0; }
