@@ -120,9 +120,10 @@ code { display: block; font: 12px/1.5 var(--font-mono); color: var(--ink-muted);
 .viewer-tools button { background: rgba(7, 10, 16, 0.7); min-width: 32px; }
 .sky-menu { position: relative; display: inline-block; margin-left: 8px; }
 .sky-menu > summary { cursor: pointer; list-style: none; user-select: none; }
-.sky-menu-body { position: absolute; bottom: 100%; left: 0; z-index: 20; display: flex; flex-direction: column; gap: 6px; width: 240px; margin-bottom: 4px; padding: 10px; background: var(--surface-1, #10151f); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 6px 18px #0008; }
-.sky-menu-body label { display: flex; align-items: center; gap: 6px; }
-.sky-menu-body label.col { flex-direction: column; align-items: stretch; }
+.sky-menu-body { position: absolute; bottom: 100%; right: 0; z-index: 20; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 240px; max-width: calc(100vw - 24px); margin-bottom: 4px; padding: 10px; text-align: left; background: var(--surface-200); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: 0 6px 18px #0008; }
+/* `.transport label` right-aligns every label of the transport row; the menu's own are left-aligned. */
+.transport .sky-menu-body label { display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-left: 0; text-align: left; }
+.transport .sky-menu-body label.col { flex-direction: column; align-items: stretch; align-self: stretch; }
 
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .transport .play { min-width: 44px; background: var(--amber); border-color: var(--amber); color: var(--surface-0); }

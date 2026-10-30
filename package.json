@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@roman-dvorak/caelum-sky": "^0.5.17",
+    "@roman-dvorak/caelum-sky": "^0.5.18",
     "fflate": "^0.8.3",
     "mediabunny": "^1.62.1",
     "react": "^19.3.0",
