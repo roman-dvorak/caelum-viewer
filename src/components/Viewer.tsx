@@ -20,6 +20,7 @@ import { SkyMenu } from "./SkyMenu";
 import { useSkySettings } from "@roman-dvorak/caelum-sky/react";
 import { MetadataPanel } from "./MetadataPanel";
 import { LangSwitch } from "./LangSwitch";
+import { TopMenu } from "./TopMenu";
 import { Timeline } from "./Timeline";
 import { ago, t, tn } from "../lib/i18n";
 
@@ -413,11 +414,6 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
         ) : (
           <span className="camera-name">{camera.name}</span>
         )}
-        {camera.link && (
-          <a className="btn" href={camera.link} target="_blank" rel="noreferrer" title={camera.link}>
-            {t("viewer.cameraLink")}
-          </a>
-        )}
         <div className="date-nav">
           <button disabled={!prevDate} onClick={() => changeDate(prevDate)} title={t("viewer.prevDay")}>
             <Icon name="prev" />
@@ -439,35 +435,42 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
         <button className={`live${live ? " on" : ""}`} onClick={toggleLive} title={t("viewer.liveTitle")}>
           ● Live
         </button>
-        <span className="muted small status">
-          {loadingFrames
-            ? t("viewer.loadingList")
-            : metaStatus === "loading"
-              ? t("viewer.metadataProgress", { done: wantedMeta.length - pending, total: wantedMeta.length })
-              : tn("frames", frames.length)}
-          {dates && date && !dates.includes(date) && !loadingFrames && t("viewer.noDataForDay")}
-        </span>
-        <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
-          {t("viewer.docs")}
-        </a>
-        <span className="seg-switch" role="group" aria-label={t("viewer.mode")}>
-          {(["simple", "advanced"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={m === mode ? "on" : ""}
-              aria-pressed={m === mode}
-              title={t(m === "simple" ? "viewer.modeSimpleTitle" : "viewer.modeAdvancedTitle")}
-              onClick={() => changeMode(m)}
-            >
-              {t(m === "simple" ? "viewer.modeSimple" : "viewer.modeAdvanced")}
-            </button>
-          ))}
-        </span>
-        <button type="button" onClick={() => setAbout(true)} title={t("viewer.aboutTitle")}>
-          {t("viewer.about")}
-        </button>
-        <LangSwitch />
+        <TopMenu>
+          {camera.link && (
+            <a className="btn" href={camera.link} target="_blank" rel="noreferrer" title={camera.link}>
+              {t("viewer.cameraLink")}
+            </a>
+          )}
+          <span className="muted small status">
+            {loadingFrames
+              ? t("viewer.loadingList")
+              : metaStatus === "loading"
+                ? t("viewer.metadataProgress", { done: wantedMeta.length - pending, total: wantedMeta.length })
+                : tn("frames", frames.length)}
+            {dates && date && !dates.includes(date) && !loadingFrames && t("viewer.noDataForDay")}
+          </span>
+          <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
+            {t("viewer.docs")}
+          </a>
+          <span className="seg-switch" role="group" aria-label={t("viewer.mode")}>
+            {(["simple", "advanced"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                className={m === mode ? "on" : ""}
+                aria-pressed={m === mode}
+                title={t(m === "simple" ? "viewer.modeSimpleTitle" : "viewer.modeAdvancedTitle")}
+                onClick={() => changeMode(m)}
+              >
+                {t(m === "simple" ? "viewer.modeSimple" : "viewer.modeAdvanced")}
+              </button>
+            ))}
+          </span>
+          <button type="button" onClick={() => setAbout(true)} title={t("viewer.aboutTitle")}>
+            {t("viewer.about")}
+          </button>
+          <LangSwitch />
+        </TopMenu>
       </header>
       {about && <AboutDialog onClose={() => setAbout(false)} />}
 
