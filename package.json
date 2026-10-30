@@ -1,6 +1,6 @@
 {
   "name": "caelum-viewer",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Static all-sky camera data viewer (S3 / HTTP index)",
   "scripts": {
     "dev": "vite",

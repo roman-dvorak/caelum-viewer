@@ -2,6 +2,7 @@ import { describe, expect, it, vi, afterEach } from "vitest";
 import { parseListObjectsV2, S3DataSource, s3BucketUrl } from "../data/s3";
 import { parseHtmlListing, parseJsonListing, HttpIndexDataSource } from "../data/httpIndex";
 import { normalizeCatalog } from "../data/catalog";
+import { CaelumManifestDataSource, mergeEntries } from "../data/caelumManifest";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -126,5 +127,38 @@ describe("caelum camera API", async () => {
     expect(isLocalHost("172.20.0.1")).toBe(true);
     expect(isLocalHost("cam.local")).toBe(true);
     expect(isLocalHost("example.org")).toBe(false);
+  });
+});
+
+describe("caelum manifest + directory listing", () => {
+  it("adds files the manifest does not list", async () => {
+    const day = "https://h.org/cam/thumbnails/2026/10/29/";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === `${day}index.json`) return new Response('{"images":[{"thumbnail":"thumbnails/2026/10/29/20261029-200250.webp"}]}');
+        if (url === day) return new Response('<a href="20261029-200250.webp">a</a><a href="20261029-120000.webp">b</a>', { headers: { "content-type": "text/html" } });
+        return new Response("", { status: 404 });
+      }),
+    );
+    const src = new CaelumManifestDataSource("https://h.org/cam/manifest.json");
+    const names = (await src.list("thumbnails/2026/10/29/")).map((e) => e.name).sort();
+    expect(names).toEqual(["20261029-120000.webp", "20261029-200250.webp"]);
+  });
+
+  it("falls back to the manifest when there is no listing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.endsWith("index.json") ? new Response('{"images":[{"thumbnail":"thumbnails/2026/10/29/a.webp"}]}') : new Response("", { status: 403 }),
+      ),
+    );
+    const src = new CaelumManifestDataSource("https://h.org/cam/manifest.json");
+    expect((await src.list("thumbnails/2026/10/29/")).map((e) => e.name)).toEqual(["a.webp"]);
+  });
+
+  it("merges by path", () => {
+    const e = (path: string) => ({ name: path, path, isDir: false });
+    expect(mergeEntries([e("a")], [e("a"), e("b")]).map((x) => x.path)).toEqual(["a", "b"]);
   });
 });
