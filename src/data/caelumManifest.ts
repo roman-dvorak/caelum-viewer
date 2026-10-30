@@ -1,4 +1,5 @@
 import { encodePath, fetchJson, withTrailingSlash } from "./fetch";
+import { HttpIndexDataSource } from "./httpIndex";
 import type { DataSource, Entry } from "./types";
 
 interface CameraManifest {
@@ -14,19 +15,22 @@ const MANIFEST_TTL_MS = 30_000;
  * For a plain static host without directory listings, where the caelum
  * uploader publishes `manifest.json` + per-day `thumbnails/Y/M/D/index.json`.
  * Synthesizes directory listings from those files so the rest of the viewer
- * cannot tell the difference. RAW files are not enumerated by the manifest,
- * so `raw/` lists as empty.
+ * cannot tell the difference. The manifest is only as fresh as the uploader's
+ * last run and does not list RAW files, so when the host also serves real
+ * directory listings those are merged in: whatever is on the server shows up.
  */
 export class CaelumManifestDataSource implements DataSource {
   readonly kind = "caelum-manifest";
   readonly label: string;
   private readonly base: string;
   private manifest?: { at: number; data: Promise<CameraManifest> };
+  private readonly index: HttpIndexDataSource;
 
   constructor(url: string) {
     const abs = new URL(url, location.href).toString();
     this.base = abs.endsWith(".json") ? abs.slice(0, abs.lastIndexOf("/") + 1) : withTrailingSlash(abs);
     this.label = `caelum: ${this.base}`;
+    this.index = new HttpIndexDataSource(this.base);
   }
 
   url(path: string): string {
@@ -43,6 +47,24 @@ export class CaelumManifestDataSource implements DataSource {
   }
 
   async list(path: string, signal?: AbortSignal): Promise<Entry[]> {
+    type Attempt = { entries?: Entry[]; error?: Error };
+    const attempt = (p: Promise<Entry[]>): Promise<Attempt> =>
+      p.then(
+        (entries): Attempt => ({ entries }),
+        (error: Error): Attempt => {
+          if (error.name === "AbortError") throw error;
+          return { error };
+        },
+      );
+    // The host's own directory listing may or may not exist; either source alone is enough.
+    const [manifest, listing] = await Promise.all([attempt(this.fromManifest(path, signal)), attempt(this.index.list(path, signal))]);
+    if (manifest.entries && listing.entries) return mergeEntries(manifest.entries, listing.entries);
+    const entries = manifest.entries ?? listing.entries;
+    if (entries) return entries;
+    throw manifest.error;
+  }
+
+  private async fromManifest(path: string, signal?: AbortSignal): Promise<Entry[]> {
     const parts = path.split("/").filter(Boolean);
     if (parts.length === 0) {
       return [{ name: "thumbnails", path: "thumbnails/", isDir: true }];
@@ -66,4 +88,10 @@ export class CaelumManifestDataSource implements DataSource {
     }
     return [...names].sort().map((name) => ({ name, path: `${path}${name}/`, isDir: true }));
   }
+}
+
+/** Union by path; the manifest's entries come first, the listing adds what it does not know about. */
+export function mergeEntries(first: Entry[], second: Entry[]): Entry[] {
+  const seen = new Set(first.map((e) => e.path));
+  return [...first, ...second.filter((e) => !seen.has(e.path))];
 }
