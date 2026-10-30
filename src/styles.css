@@ -361,3 +361,23 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
   .tiles { padding: 8px; gap: 8px; }
   .overview-bar { padding: 8px 8px 4px; }
 }
+
+/* top bar: secondary items inline on wide screens, behind a "more" menu on small ones */
+.topmenu { display: contents; }
+.topmenu-btn { display: none; }
+.topmenu-items { display: contents; }
+@media (max-width: 900px) {
+  .topbar { gap: 8px; padding: 8px 12px; }
+  .topmenu { display: block; position: relative; margin-left: auto; }
+  .topmenu-btn { display: inline-flex; }
+  .topmenu.open .topmenu-btn { border-color: var(--sky); }
+  .topmenu-items { display: none; }
+  .topmenu.open .topmenu-items {
+    display: flex; flex-direction: column; align-items: stretch; gap: 10px; position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; min-width: 200px;
+    padding: 12px; background: var(--navy); border: 1px solid var(--nebula); border-radius: var(--radius-md); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+  .topmenu-items .status { margin: 0; }
+  .topmenu-items .topbar-link { padding: 2px 0; }
+  .topmenu-items .seg-switch, .topmenu-items .lang-switch { align-self: flex-start; }
+  .topbar .camera-name { margin-right: auto; }
+}

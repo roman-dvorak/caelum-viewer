@@ -12,6 +12,7 @@ import { updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
 import { Icon } from "./Icon";
 import { LangSwitch } from "./LangSwitch";
+import { TopMenu } from "./TopMenu";
 import { Timeline } from "./Timeline";
 
 interface Props {
@@ -304,16 +305,18 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
         <button className={`live${live ? " on" : ""}`} onClick={toggleLive} title={t("overview.liveTitle")}>
           ● Live
         </button>
-        <span className="muted small status">
-          {loaded < cameras.length ? t("overview.loading", { done: loaded, total: cameras.length }) : tn("frames", allFrames.length)}
-        </span>
-        <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
-          {t("viewer.docs")}
-        </a>
-        <button type="button" onClick={() => setAbout(true)} title={t("viewer.aboutTitle")}>
-          {t("viewer.about")}
-        </button>
-        <LangSwitch />
+        <TopMenu>
+          <span className="muted small status">
+            {loaded < cameras.length ? t("overview.loading", { done: loaded, total: cameras.length }) : tn("frames", allFrames.length)}
+          </span>
+          <a className="topbar-link" href={VIEWER_DOCS_URL} target="_blank" rel="noreferrer">
+            {t("viewer.docs")}
+          </a>
+          <button type="button" onClick={() => setAbout(true)} title={t("viewer.aboutTitle")}>
+            {t("viewer.about")}
+          </button>
+          <LangSwitch />
+        </TopMenu>
       </header>
       {about && <AboutDialog onClose={() => setAbout(false)} />}
 
