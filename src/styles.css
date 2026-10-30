@@ -381,3 +381,10 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
   .topmenu-items .seg-switch, .topmenu-items .lang-switch { align-self: flex-start; }
   .topbar .camera-name { margin-right: auto; }
 }
+@media (max-width: 900px) {
+  /* icon-only "all cameras" button and a shrinkable camera picker, so brand, both and ⋯ share one row */
+  .topbar .overview-label { display: none; }
+  .topbar .camera-select { flex: 1 1 0; min-width: 0; max-width: 220px; padding: 3px 6px; font-size: 13px; text-overflow: ellipsis; }
+  .brand { font-size: 15px; }
+  .brand img { width: 20px; height: 20px; }
+}

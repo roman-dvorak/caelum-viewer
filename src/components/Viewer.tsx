@@ -400,11 +400,11 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
         </a>
         {onOverview && (
           <button type="button" className="overview-btn" onClick={onOverview} title={t("viewer.overviewTitle")}>
-            <Icon name="grid" /> {t("viewer.overview")}
+            <Icon name="grid" /> <span className="overview-label">{t("viewer.overview")}</span>
           </button>
         )}
         {cameras.length > 1 ? (
-          <select value={cameraId} onChange={(e) => changeCamera(e.target.value)}>
+          <select className="camera-select" value={cameraId} onChange={(e) => changeCamera(e.target.value)}>
             {cameras.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
