@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
   pages: write
   id-token: write
 
@@ -23,7 +24,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # @roman-dvorak/caelum-sky comes from GitHub Packages (see .npmrc).
       - run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: npm test
       - run: npm run build
         env:

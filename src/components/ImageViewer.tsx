@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SkyCanvas } from "@roman-dvorak/caelum-sky/react";
 import type { Frame, FrameMeta } from "../data/archive";
 import { Icon } from "./Icon";
 import { useLoadedImage } from "../lib/hooks";
 import { formatValue, numericFields, PERIODS, skyPeriod } from "../lib/metadata";
 import { utcDate, utcTime } from "../lib/time";
 import { t } from "../lib/i18n";
+import type { SkySetup } from "../data/sky";
 
 interface Props {
   frame?: Frame;
@@ -14,7 +16,13 @@ interface Props {
   showOverlay: boolean;
   /** Live mode — the frame border glows amber. */
   live?: boolean;
+  /** Draw the sky (stars, constellations, planets, ...) over the frame. */
+  sky?: { setup: SkySetup; hidden: ReadonlySet<string>; maxMagnitude: number };
 }
+
+/** The sky canvas is redrawn at the zoomed size up to this factor (sharp lines),
+ *  and only scaled as a bitmap beyond it — a canvas of 40x the box would not fit in memory. */
+const MAX_REDRAW_ZOOM = 6;
 
 interface View {
   scale: number;
@@ -26,11 +34,28 @@ const RESET: View = { scale: 1, x: 0, y: 0 };
 /** Preview with wheel/pinch-free zoom, drag to pan, double-click to reset and
  *  fullscreen. Zoom is kept across frames so a region can be followed
  *  through a time-lapse. */
-export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }: Props) {
+export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live, sky }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<View>(RESET);
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
   const { shown, error, loading } = useLoadedImage(src);
+  const [natural, setNatural] = useState<{ w: number; h: number }>();
+  const [boxSize, setBoxSize] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => setBoxSize({ w: el.clientWidth, h: el.clientHeight }));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Where the picture actually lies in the box ("contain" fit), so the sky can sit exactly on it.
+  const fitted = (() => {
+    if (!natural || !boxSize.w || !boxSize.h) return undefined;
+    const k = Math.min(boxSize.w / natural.w, boxSize.h / natural.h);
+    return { w: natural.w * k, h: natural.h * k };
+  })();
 
   const zoomAt = useCallback((factor: number, cx: number, cy: number) => {
     setView((v) => {
@@ -107,10 +132,32 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live }:
           src={shown}
           alt={frame ? `${utcDate(frame.t)} ${utcTime(frame.t)} UTC` : ""}
           draggable={false}
+          onLoad={(e) => setNatural({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})` }}
         />
       ) : (
         <div className="viewer-empty">{frame ? (frame.thumb ? "" : t("viewer.noPreview")) : t("viewer.noFrame")}</div>
+      )}
+      {sky && fitted && frame && shown && (
+        // Same box and the same pan/zoom as the picture, so every star stays on its star.
+        <div
+          className="viewer-sky"
+          style={{
+            width: fitted.w * Math.min(view.scale, MAX_REDRAW_ZOOM),
+            height: fitted.h * Math.min(view.scale, MAX_REDRAW_ZOOM),
+            transform: `translate(calc(-50% + ${view.x}px), calc(-50% + ${view.y}px)) scale(${view.scale / Math.min(view.scale, MAX_REDRAW_ZOOM)})`,
+          }}
+        >
+          <SkyCanvas
+            lens={sky.setup.lens}
+            latDeg={sky.setup.lat}
+            lonDeg={sky.setup.lon}
+            elevationM={sky.setup.elevationM}
+            when={new Date(frame.t)}
+            hidden={sky.hidden}
+            maxMagnitude={sky.maxMagnitude}
+          />
+        </div>
       )}
       {error && <div className="viewer-msg">{t("viewer.previewFailed")}</div>}
       {loading && <div className="viewer-spinner" />}

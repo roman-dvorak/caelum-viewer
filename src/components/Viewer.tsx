@@ -4,7 +4,7 @@ import { createDataSource } from "../data/factory";
 import type { CameraConfig } from "../data/types";
 import { VIEWER_DOCS_URL } from "../lib/brand";
 import { applyFilters, isFiltering, needsMetadata, NO_FILTERS, type Filters } from "../lib/filters";
-import { useMetadata, usePreload } from "../lib/hooks";
+import { useMetadata, usePreload, useSkySetup } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
 import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
@@ -16,6 +16,8 @@ import { FilterPanel } from "./FilterPanel";
 import { Gallery } from "./Gallery";
 import { Icon } from "./Icon";
 import { ImageViewer } from "./ImageViewer";
+import { SkyMenu } from "./SkyMenu";
+import { useSkySettings } from "@roman-dvorak/caelum-sky/react";
 import { MetadataPanel } from "./MetadataPanel";
 import { LangSwitch } from "./LangSwitch";
 import { Timeline } from "./Timeline";
@@ -91,6 +93,10 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
   /** Metadata of the whole day is fetched only on request (charts, filters, the load button). */
   const [metaRequested, setMetaRequested] = useState(false);
   const [overlay, setOverlay] = useState(true);
+  /** The sky over the picture: only offered when the camera publishes its lens and position. */
+  const skySetup = useSkySetup(archive.source);
+  const [skyOn, setSkyOn] = useState(() => localStorage.getItem("caelum-viewer.sky") === "1");
+  const [skyView, updateSkyView] = useSkySettings();
   const [mode, setMode] = useState<Mode>(() => initialMode(initial));
   const simple = mode === "simple";
   /** Section of the day that playback loops in and export takes (advanced mode). */
@@ -495,6 +501,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
             cameraName={camera.name}
             showOverlay={overlay}
             live={live}
+            sky={skySetup && skyOn ? { setup: skySetup, hidden: skyView.hidden, maxMagnitude: skyView.maxMagnitude } : undefined}
           />
           <div className="transport">
             <button onClick={() => step(-Infinity)} title={t("viewer.first")}><Icon name="first" /></button>
@@ -530,6 +537,17 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
             <label className="small">
               <input type="checkbox" checked={overlay} onChange={(e) => setOverlay(e.target.checked)} /> {t("viewer.overlay")}
             </label>
+            {skySetup && (
+              <SkyMenu
+                on={skyOn}
+                onToggle={(on) => {
+                  setSkyOn(on);
+                  localStorage.setItem("caelum-viewer.sky", on ? "1" : "0");
+                }}
+                settings={skyView}
+                onChange={updateSkyView}
+              />
+            )}
           </div>
           {date && (
             <Timeline

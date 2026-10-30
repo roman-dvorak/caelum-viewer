@@ -23,6 +23,9 @@ export interface DataSource {
   readonly label: string;
   list(path: string, signal?: AbortSignal): Promise<Entry[]>;
   url(path: string): string;
+  /** Where the lens and position for drawing the sky can be fetched, when it
+   * is not the `manifest.json` next to the data (a camera's own API). */
+  skySetupUrl?(): string;
 }
 
 export type SourceConfig =

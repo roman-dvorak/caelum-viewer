@@ -41,6 +41,10 @@ developed by [AstroMeters](https://astrometers.eu/).
   “Load metadata” is pressed
 - recently viewed cameras and catalog overviews on the start screen (kept in the browser's
   localStorage); pinned entries stay at the top and are never pushed out or cleared
+- the **sky over the picture** — lens outline, horizon and altitude rings, constellation lines,
+  stars, Sun, Moon and planets and the compass, drawn live in the browser for the time of the
+  frame (zoom and pan follow the picture). Offered when the camera publishes its lens and position
+  — see [The sky](#the-sky)
 - English and Czech UI
 - installable as an app (PWA): “Install” in Chrome / Edge, “Add to Home Screen” on iOS and
   Android; the app itself opens offline, camera data is always loaded live
@@ -176,9 +180,32 @@ reads frames straight from the camera's API. Requirements:
   “access devices on your local network” prompt. Firefox and Safari block such requests
   (mixed content) — there the camera has to be served over https.
 
+## The sky
+
+For cameras running caelum 0.5.17 or newer the viewer can draw the night sky over the frame: the
+“sky” checkbox next to “overlay”, with a folded menu for the parts (lens outline, horizon and
+rings, constellations, stars, Sun/Moon/planets, compass) and the faintest star. The choices are
+kept in the browser. Nothing is rendered by the camera or uploaded: the drawing code is the
+npm package [`@roman-dvorak/caelum-sky`](https://github.com/roman-dvorak/caelum/tree/master/web/packages/sky)
+(star catalog and planetary ephemeris are loaded the first time it is switched on).
+
+It needs the camera's **lens calibration** and **position**, which the viewer finds in:
+
+- the camera's `manifest.json` (`sky.lens` and `location`) — the camera publishes them only with
+  `camera.identity.publish_location: true`; applies to the *caelum manifest* sources, and to
+  S3 / HTTP index archives that contain the camera's `manifest.json` at their root;
+- the camera's own API (`/api/sky/setup`) for the *straight from a camera* source.
+
+Without them (older caelum, no published position, a plain archive) there is simply no sky
+checkbox. Calibrate the lens first (the camera's web UI → Lens), or the stars sit in the wrong place.
+
 ## Development
 
+The sky package comes from GitHub Packages, so `npm install` needs a token with `read:packages`
+(see [`.npmrc`](.npmrc)):
+
 ```bash
+export NODE_AUTH_TOKEN=$(gh auth token)   # after: gh auth refresh -s read:packages
 npm install
 npm run dev        # http://localhost:5173
 npm test           # vitest
@@ -204,7 +231,9 @@ design system (tokens at the top of [`src/styles.css`](src/styles.css)).
 
 The [`.github/workflows/pages.yml`](.github/workflows/pages.yml) workflow runs the tests,
 builds the app and deploys it to GitHub Pages on every push to `main`. The repository needs
-**Settings → Pages → Source: GitHub Actions** set once.
+**Settings → Pages → Source: GitHub Actions** set once, and read access to the
+`@roman-dvorak/caelum-sky` package (in the caelum repo's package settings →
+*Manage Actions access* → add this repository).
 
 Usage analytics ([Microsoft Clarity](https://clarity.microsoft.com/)) are enabled only when
 the build gets a project ID: set the repository secret `CLARITY_PROJECT_ID`

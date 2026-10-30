@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CameraArchive, Frame, FrameMeta } from "../data/archive";
+import { loadSkySetup, type SkySetup } from "../data/sky";
+import type { DataSource } from "../data/types";
 
 const METADATA_CONCURRENCY = 8;
 const FLUSH_MS = 250;
@@ -100,4 +102,18 @@ export function usePreload(urls: string[]) {
     // shown next, and aborting it would only force a second download.
     for (const u of urls) new Image().src = u;
   }, [urls.join("|")]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** The lens and position the sky can be drawn from, if the camera publishes them. */
+export function useSkySetup(source: DataSource): SkySetup | undefined {
+  const [setup, setSetup] = useState<{ source: DataSource; value?: SkySetup }>();
+  useEffect(() => {
+    const ctl = new AbortController();
+    loadSkySetup(source, ctl.signal).then((value) => {
+      if (!ctl.signal.aborted) setSetup({ source, value });
+    });
+    return () => ctl.abort();
+  }, [source]);
+  // A setup that belongs to the previous camera is not this camera's.
+  return setup?.source === source ? setup.value : undefined;
 }

@@ -140,6 +140,16 @@ const en = {
   "viewer.speed": "Playback speed",
   "viewer.fps": "{n} frames/s",
   "viewer.overlay": "overlay",
+  "sky.label": "sky",
+  "sky.title": "Draw the sky over the picture — stars, constellations, planets (the camera publishes its lens and position)",
+  "sky.options": "What to draw",
+  "sky.layer.outline": "Lens outline & centre",
+  "sky.layer.grid": "Horizon & altitude rings",
+  "sky.layer.constellations": "Constellation lines",
+  "sky.layer.stars": "Stars",
+  "sky.layer.planets": "Sun, Moon & planets",
+  "sky.layer.compass": "Compass",
+  "sky.faintest": "Faintest star: mag {mag}",
   "viewer.charts": "Charts",
   "viewer.chartsTitle": "Charts load the metadata of every frame of the day",
   "viewer.gallery": "Gallery ({n})",
@@ -241,7 +251,7 @@ const en = {
   "err.s3Xml": "S3: the response is not valid ListObjectsV2 XML.",
 };
 
-type Key = keyof typeof en;
+export type Key = keyof typeof en;
 
 const cs: Record<Key, string> = {
   "start.tagline": "Archiv all-sky kamer přímo v prohlížeči",
@@ -370,6 +380,16 @@ const cs: Record<Key, string> = {
   "viewer.speed": "Rychlost přehrávání",
   "viewer.fps": "{n} snímků/s",
   "viewer.overlay": "overlay",
+  "sky.label": "obloha",
+  "sky.title": "Vykreslit oblohu přes snímek — hvězdy, souhvězdí, planety (kamera zveřejňuje čočku a polohu)",
+  "sky.options": "Co kreslit",
+  "sky.layer.outline": "Obrys čočky a střed",
+  "sky.layer.grid": "Horizont a kruhy výšky",
+  "sky.layer.constellations": "Čáry souhvězdí",
+  "sky.layer.stars": "Hvězdy",
+  "sky.layer.planets": "Slunce, Měsíc a planety",
+  "sky.layer.compass": "Světové strany",
+  "sky.faintest": "Nejslabší hvězda: mag {mag}",
   "viewer.charts": "Grafy",
   "viewer.chartsTitle": "Grafy načtou metadata všech snímků dne",
   "viewer.gallery": "Galerie ({n})",

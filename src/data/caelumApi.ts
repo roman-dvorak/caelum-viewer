@@ -28,6 +28,10 @@ export class CaelumApiDataSource implements DataSource {
     return `${this.base}api/files/content?${new URLSearchParams({ path })}`;
   }
 
+  skySetupUrl(): string {
+    return `${this.base}api/sky/setup`;
+  }
+
   async list(path: string, signal?: AbortSignal): Promise<Entry[]> {
     const q = new URLSearchParams({ path: path.replace(/\/$/, "") });
     const res = await fetchOk(`${this.base}api/files?${q}`, { signal, headers: { Accept: "application/json" } });
