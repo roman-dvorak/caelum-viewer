@@ -10,6 +10,7 @@ import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
 import { updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
+import { CameraInfo } from "./CameraInfo";
 import { Charts } from "./Charts";
 import { ExportPanel } from "./ExportPanel";
 import { FilterPanel } from "./FilterPanel";
@@ -414,6 +415,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
         ) : (
           <span className="camera-name">{camera.name}</span>
         )}
+        <CameraInfo camera={camera} />
         <div className="date-nav">
           <button disabled={!prevDate} onClick={() => changeDate(prevDate)} title={t("viewer.prevDay")}>
             <Icon name="prev" />

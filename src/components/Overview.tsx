@@ -10,6 +10,7 @@ import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
 import { updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
+import { CameraInfo } from "./CameraInfo";
 import { Icon } from "./Icon";
 import { LangSwitch } from "./LangSwitch";
 import { TopMenu } from "./TopMenu";
@@ -406,6 +407,7 @@ function Tile(p: TileProps & { onZoom: () => void }) {
           )}
           {error && <span className="cam-tile-error" title={error}>{error}</span>}
         </div>
+        <CameraInfo camera={camera} />
         <button type="button" className="btn" onClick={onOpen}>
           {t("overview.open")}
         </button>
