@@ -157,6 +157,7 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live, s
             hidden={sky.hidden}
             maxMagnitude={sky.maxMagnitude}
             opacity={sky.opacity}
+            interactive
           />
         </div>
       )}
