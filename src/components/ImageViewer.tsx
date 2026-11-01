@@ -7,6 +7,7 @@ import { formatValue, numericFields, PERIODS, skyPeriod } from "../lib/metadata"
 import { utcDate, utcTime } from "../lib/time";
 import { t } from "../lib/i18n";
 import type { SkySetup } from "../data/sky";
+import { telescopeFromMeta } from "../lib/telescope";
 
 interface Props {
   frame?: Frame;
@@ -158,6 +159,7 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live, s
             maxMagnitude={sky.maxMagnitude}
             symbolScale={sky.symbolScale}
             opacity={sky.opacity}
+            telescope={telescopeFromMeta(meta)}
             interactive
           />
         </div>

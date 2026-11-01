@@ -196,6 +196,12 @@ It needs the camera's **lens calibration** and **position**, which the viewer fi
   S3 / HTTP index archives that contain the camera's `manifest.json` at their root;
 - the camera's own API (`/api/sky/setup`) for the *straight from a camera* source.
 
+If the camera has the `telescope_position` plugin on, the sky also draws a **telescope crosshair**
+(layer “Telescope”, coloured by the mount's status: tracking, slewing, idle, parked, …) where the
+telescope pointed at that frame. It is read from the `telescope_marker` element in the frame's JSON
+sidecar and drawn from RA/Dec through the lens (needs `@roman-dvorak/caelum-sky` with the telescope
+layer); a frame without that element simply has no cross.
+
 Without them (older caelum, no published position, a plain archive) there is simply no sky
 checkbox. Calibrate the lens first (the camera's web UI → Lens), or the stars sit in the wrong place.
 
