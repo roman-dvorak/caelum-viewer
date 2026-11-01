@@ -507,7 +507,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
             live={live}
             sky={
               skySetup && skyView.on
-                ? { setup: skySetup, hidden: skyView.hidden, maxMagnitude: skyView.maxMagnitude, opacity: skyView.opacity }
+                ? { setup: skySetup, hidden: skyView.hidden, maxMagnitude: skyView.maxMagnitude, symbolScale: skyView.symbolScale, opacity: skyView.opacity }
                 : undefined
             }
           />

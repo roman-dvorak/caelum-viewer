@@ -17,7 +17,7 @@ interface Props {
   /** Live mode — the frame border glows amber. */
   live?: boolean;
   /** Draw the sky (stars, constellations, planets, ...) over the frame. */
-  sky?: { setup: SkySetup; hidden: ReadonlySet<string>; maxMagnitude: number; opacity: number };
+  sky?: { setup: SkySetup; hidden: ReadonlySet<string>; maxMagnitude: number; symbolScale: number; opacity: number };
 }
 
 /** The sky canvas is redrawn at the zoomed size up to this factor (sharp lines),
@@ -156,6 +156,7 @@ export function ImageViewer({ frame, src, meta, cameraName, showOverlay, live, s
             when={new Date(frame.t)}
             hidden={sky.hidden}
             maxMagnitude={sky.maxMagnitude}
+            symbolScale={sky.symbolScale}
             opacity={sky.opacity}
             interactive
           />
