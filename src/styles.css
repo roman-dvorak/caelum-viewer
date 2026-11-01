@@ -76,6 +76,13 @@ code { display: block; font: 12px/1.5 var(--font-mono); color: var(--ink-muted);
 .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 16px; background: var(--navy); border-bottom: 1px solid var(--nebula); position: sticky; top: 0; z-index: 10; }
 .topbar button, .topbar select, .topbar input, .topbar .btn { background: rgba(7, 10, 16, 0.35); border-color: var(--nebula); }
 .topbar button:hover:not(:disabled), .topbar .btn:hover { border-color: var(--sky); }
+/* one control size for everything in the top bar */
+.topbar { --ctl-h: 32px; }
+.topbar button, .topbar select, .topbar input, .topbar .btn { height: var(--ctl-h); padding: 0 12px; font-size: 13px; line-height: 1; }
+.topbar button, .topbar .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.topbar button:has(> .icon) { padding: 0; width: var(--ctl-h); }
+.topbar .overview-btn { width: auto; padding: 0 12px; }
+.topbar .topbar-link { display: inline-flex; align-items: center; height: var(--ctl-h); padding: 0 4px; }
 .brand { display: flex; align-items: center; gap: 8px; font: 600 16px/1 var(--font-display); letter-spacing: -0.01em; }
 .brand img { width: 22px; height: 22px; }
 .camera-name { font-weight: 600; }
@@ -284,14 +291,14 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 /* language switch */
 .lang-switch, .seg-switch { display: inline-flex; gap: 2px; }
 .seg-switch button { padding: 1px 8px; font-size: 12px; color: #a9b8d0; }
-.topbar .seg-switch button { background: none; border-color: transparent; }
-.topbar .seg-switch button.on { border-color: var(--nebula); color: var(--ink); }
+.topbar .seg-switch, .topbar .lang-switch { gap: 2px; padding: 2px; height: var(--ctl-h); align-items: stretch; border: 1px solid var(--nebula); border-radius: var(--radius-md); background: rgba(7, 10, 16, 0.35); }
+.topbar .seg-switch button, .topbar .lang-switch button { height: auto; width: auto; padding: 0 10px; border-color: transparent; background: none; border-radius: var(--radius-sm); color: #a9b8d0; font-size: 12px; }
+.topbar .lang-switch button { font-family: var(--font-mono); font-size: 11px; padding: 0 8px; }
+.topbar .seg-switch button.on, .topbar .lang-switch button.on { background: var(--surface-400); border-color: transparent; color: var(--ink); }
 .layout.simple { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage"; }
 .layout.simple .viewer { height: min(80vh, 100vw); }
 .lang-switch button { padding: 1px 6px; font: 500 11px/1.6 var(--font-mono); color: var(--ink-muted); background: none; border-color: transparent; border-radius: var(--radius-sm); }
 .lang-switch button.on { color: var(--ink); border-color: var(--border); }
-.topbar .lang-switch button { background: none; border-color: transparent; }
-.topbar .lang-switch button.on { border-color: var(--nebula); color: var(--ink); }
 
 /* metadata on request */
 .meta-request { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 10px; padding: 8px 10px; background: var(--sky-surface); border-radius: var(--radius-md); }
@@ -384,7 +391,7 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 @media (max-width: 900px) {
   /* icon-only "all cameras" button and a shrinkable camera picker, so brand, both and ⋯ share one row */
   .topbar .overview-label { display: none; }
-  .topbar .camera-select { flex: 1 1 0; min-width: 0; max-width: 220px; padding: 3px 6px; font-size: 13px; text-overflow: ellipsis; }
+  .topbar .camera-select { flex: 1 1 0; min-width: 0; max-width: 220px; padding: 0 6px; font-size: 13px; text-overflow: ellipsis; }
   .brand { font-size: 15px; }
   .brand img { width: 20px; height: 20px; }
 }
