@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { SOURCE_TYPES } from "../data/factory";
-import { bookmarkHref, removeBookmark, setBookmarkNote, useBookmarks, type Bookmark } from "../lib/bookmarks";
+import { bookmarkHref, isLike, removeBookmark, setBookmarkNote, useBookmarks, type Bookmark, type Like } from "../lib/bookmarks";
 import { DEVELOPER_NAME, DEVELOPER_URL, DOCS_URL, REPO_URL, VIEWER_DOCS_URL } from "../lib/brand";
 import { ago, t, tMaybe } from "../lib/i18n";
 import { clearRecent, forgetSource, loadRecent, togglePin, type RecentSource } from "../lib/recent";
@@ -9,7 +9,7 @@ import { utcDate, utcTime } from "../lib/time";
 import { buildSearch, type ViewParams } from "../lib/urlState";
 import { LangSwitch } from "./LangSwitch";
 
-const FEATURES = ["overview", "bookmarks", "timeline", "timelapse", "live", "charts", "filters", "raw"] as const;
+const FEATURES = ["overview", "likes", "bookmarks", "timeline", "timelapse", "live", "charts", "filters", "raw"] as const;
 
 const KEYS: [string, Parameters<typeof t>[0]][] = [
   ["← →", "key.frame"],
@@ -19,6 +19,7 @@ const KEYS: [string, Parameters<typeof t>[0]][] = [
   ["F", "key.fullscreen"],
   ["+ − 0", "key.zoom"],
   ["O", "key.overlay"],
+  ["H", "key.like"],
   ["B", "key.bookmark"],
   ["+ −", "key.tileSize"],
 ];
@@ -107,6 +108,7 @@ export function StartScreen({ error }: { error?: string }) {
             </section>
           )}
 
+          <Likes />
           <Bookmarks />
 
           <form onSubmit={submit} className="panel open-form">
@@ -269,9 +271,74 @@ export function StartScreen({ error }: { error?: string }) {
   );
 }
 
-/** Every bookmark, the latest moment first; each opens where it was marked. */
+/** Liked frames as a gallery, the latest first; each opens its camera at that frame. */
+function Likes() {
+  const list = useBookmarks().filter(isLike);
+  if (!list.length) return null;
+  return (
+    <section className="panel">
+      <h2>{t("start.likes")}</h2>
+      <p className="hint bookmarks-hint">{t("start.likesHint")}</p>
+      <ul className="likes">
+        {[...list].reverse().map((b) => (
+          <LikeItem key={b.id} b={b} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function LikeItem({ b }: { b: Like }) {
+  const href = bookmarkHref(b);
+  const [broken, setBroken] = useState(false);
+  return (
+    <li>
+      <a className="like-img" href={href} title={b.catalog ? `${b.label} · ${b.catalog}` : b.label}>
+        {b.frame.src && !broken ? <img src={b.frame.src} alt={b.label} loading="lazy" onError={() => setBroken(true)} /> : <span className="hint">{t("viewer.noPreview")}</span>}
+      </a>
+      <div className="like-body">
+        <a className="bookmark-time like-time" href={href}>
+          <span className="like-dot" aria-hidden="true" />
+          {utcDate(b.t)} {utcTime(b.t)} UTC
+        </a>
+        <span className="bookmark-where">
+          {b.label}
+          {b.catalog && <span className="recent-catalog"> · {b.catalog}</span>}
+        </span>
+        <NoteInput b={b} />
+      </div>
+      <button type="button" className="link like-remove" title={t("start.bookmarkRemove")} onClick={() => removeBookmark(b.id)}>
+        ×
+      </button>
+    </li>
+  );
+}
+
+/** The bookmark's description, saved on Enter / leaving the field (Esc: back to the saved one). */
+function NoteInput({ b }: { b: Bookmark }) {
+  return (
+    <input
+      className="bookmark-note"
+      defaultValue={b.note ?? ""}
+      placeholder={t("start.bookmarkNote")}
+      aria-label={t("start.bookmarkNote")}
+      onBlur={(e) => {
+        if (e.target.value.trim() !== (b.note ?? "")) setBookmarkNote(b.id, e.target.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") e.currentTarget.blur();
+        else if (e.key === "Escape") {
+          e.currentTarget.value = b.note ?? "";
+          e.currentTarget.blur();
+        }
+      }}
+    />
+  );
+}
+
+/** Every marked moment, the latest first; each opens where it was marked. */
 function Bookmarks() {
-  const list = useBookmarks();
+  const list = useBookmarks().filter((b) => !b.frame);
   if (!list.length) return null;
   return (
     <section className="panel">
@@ -289,9 +356,6 @@ function Bookmarks() {
 function BookmarkItem({ b }: { b: Bookmark }) {
   const href = bookmarkHref(b);
   const where = b.catalog ? `${b.label} · ${b.catalog}` : b.label;
-  const commit = (e: React.FocusEvent<HTMLInputElement>) => {
-    if (e.target.value.trim() !== (b.note ?? "")) setBookmarkNote(b.id, e.target.value);
-  };
   return (
     <li>
       <a className="bookmark-time" href={href}>
@@ -300,20 +364,7 @@ function BookmarkItem({ b }: { b: Bookmark }) {
         <span>{utcTime(b.t)} UTC</span>
       </a>
       <div className="bookmark-body">
-        <input
-          className="bookmark-note"
-          defaultValue={b.note ?? ""}
-          placeholder={t("start.bookmarkNote")}
-          aria-label={t("start.bookmarkNote")}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") e.currentTarget.blur();
-            else if (e.key === "Escape") {
-              e.currentTarget.value = b.note ?? "";
-              e.currentTarget.blur();
-            }
-          }}
-        />
+        <NoteInput b={b} />
         <a className="bookmark-where" href={href} title={t("start.bookmarkMarkedIn", { where })}>
           <span className="tag">{kindLabel(b.kind)}</span> {where}
         </a>

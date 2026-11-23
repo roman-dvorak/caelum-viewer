@@ -24,6 +24,9 @@ developed by [AstroMeters](https://astrometers.eu/).
   timeline of that day in every camera and catalog (hover shows its description, a click goes
   to it), and the start screen lists them all with an editable description, each opening the
   view it was marked in. Kept in the browser's localStorage
+- liked frames — the heart button (or `H`; in the overview on each tile and in the enlarged
+  view) likes one frame of one camera; it shows on that camera's timeline, and the start
+  screen shows all liked frames as a gallery of previews, each opening its camera at that frame
 - frame detail with zoom (wheel, +/−), drag to pan and fullscreen
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
 - download of the original RAW (DNG), links to the preview and the JSON metadata
@@ -55,10 +58,11 @@ developed by [AstroMeters](https://astrometers.eu/).
 - installable as an app (PWA): “Install” in Chrome / Edge, “Add to Home Screen” on iOS and
   Android; the app itself opens offline, camera data is always loaded live
 
-Keys: `←/→` (with Shift by 10; in the overview by one shared step), `↑/↓` = previous / next
+Keys: `←/→` (with Shift by 10; in the overview by one shared step; past the last / first frame
+of a day on into the next / previous day with data), `↑/↓` = previous / next
 camera of the catalog (in the overview while a camera is enlarged), `Home/End`, Space = playback,
 `F` = fullscreen, `+/−/0` = zoom (in the overview: preview size), `L` = live, `O` = overlay,
-`B` = bookmark, `[` / `]` = section start / end at the current frame, `Esc` = cancel the section.
+`B` = bookmark the moment, `H` = like the frame, `[` / `]` = section start / end at the current frame, `Esc` = cancel the section.
 
 ## Usage
 

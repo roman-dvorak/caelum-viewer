@@ -6,11 +6,12 @@ import { VIEWER_DOCS_URL } from "../lib/brand";
 import { applyFilters, isFiltering, needsMetadata, NO_FILTERS, type Filters } from "../lib/filters";
 import { useMetadata, usePreload, useSkySetup } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
+import { placeOf } from "../lib/bookmarks";
 import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
 import { readParams, updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
-import { BookmarkButton, useBookmarkToggle } from "./BookmarkButton";
+import { BookmarkButton, LikeButton, useBookmarkToggle, useLikeToggle } from "./BookmarkButton";
 import { CameraInfo } from "./CameraInfo";
 import { Charts } from "./Charts";
 import { ExportPanel } from "./ExportPanel";
@@ -256,14 +257,20 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
     setCurrentId(id);
   }, []);
 
-  const step = useCallback(
-    (delta: number) => {
-      if (!visible.length) return;
-      const i = currentIndex < 0 ? 0 : currentIndex;
-      select(visible[Math.min(visible.length - 1, Math.max(0, i + delta))].id);
-    },
-    [visible, currentIndex, select],
-  );
+  /**
+   * Moves by `delta` frames. A step past the last (first) frame of the day
+   * goes on to the first (last) frame of the next (previous) day with data;
+   * Home / End (±Infinity) stay within the day.
+   */
+  const step = (delta: number) => {
+    const i = currentIndex < 0 ? 0 : currentIndex;
+    if (Number.isFinite(delta) && !loadingFrames) {
+      if (delta > 0 && i >= visible.length - 1 && nextDate) return changeDate(nextDate, "00:00:00");
+      if (delta < 0 && i <= 0 && prevDate) return changeDate(prevDate, "23:59:59");
+    }
+    if (!visible.length) return;
+    select(visible[Math.min(visible.length - 1, Math.max(0, i + delta))].id);
+  };
 
   const seek = useCallback(
     (t: number) => {
@@ -282,12 +289,13 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
     setRange(next.from <= next.to ? next : { from: current.t, to: current.t });
   };
 
-  const changeDate = (next: string | undefined) => {
+  /** Opens day `next` at `time` (HH:MM:SS), by default at the time of day on screen. */
+  const changeDate = (next: string | undefined, time?: string) => {
     if (!next || next === date) return;
     setLive(false);
     setPlaying(false);
     setRange(null);
-    if (current) pendingTime.current = utcTime(current.t);
+    pendingTime.current = time ?? (current ? utcTime(current.t) : undefined);
     setDate(next);
   };
 
@@ -333,6 +341,16 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
     label: camera.name,
     catalog: fromCatalog ? (title ?? t("data.catalog")) : undefined,
     params: () => ({ ...readParams(), camera: fromCatalog ? cameraId : undefined }),
+  });
+
+  /** The camera's own view (no position), which its liked frames belong to. */
+  const cameraParams = useMemo(() => ({ ...initial, camera: fromCatalog ? cameraId : undefined }), [initial, fromCatalog, cameraId]);
+  const likeSources = useMemo(() => [placeOf(cameraParams).search], [cameraParams]);
+  const like = useLikeToggle({
+    frame: current && { id: current.id, t: current.t, src: current.thumb ? archive.source.url(current.thumb) : undefined },
+    label: camera.name,
+    catalog: fromCatalog ? (title ?? t("data.catalog")) : undefined,
+    params: cameraParams,
   });
 
   /** The previous / next camera of the catalog, wrapping around. */
@@ -386,6 +404,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
       else if (e.key === "l") toggleLive();
       else if (e.key === "o") setOverlay((o) => !o);
       else if (e.key === "b" && !e.ctrlKey && !e.metaKey) bookmark.toggle();
+      else if (e.key === "h" && !e.ctrlKey && !e.metaKey) like.toggle();
       else if (e.key === "ArrowUp" && cameras.length > 1) stepCamera(-1);
       else if (e.key === "ArrowDown" && cameras.length > 1) stepCamera(1);
       else if (e.key === "[" && !simple) setRangeEdge("from");
@@ -548,6 +567,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
               {current ? `${utcTime(current.t)} UTC` : "—"}
               <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
             </span>
+            <LikeButton {...like} disabled={!current} />
             <BookmarkButton {...bookmark} disabled={!current} />
             {!simple && (
               <span className="range-tools">
@@ -576,6 +596,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
               metaMap={metaMap}
               currentT={current?.t}
               range={range}
+              likeSources={likeSources}
               onSeek={seek}
               onRange={simple ? undefined : (from, to) => {
                 setLive(false);

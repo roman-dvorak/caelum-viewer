@@ -4,7 +4,9 @@ import {
   bookmarkHref,
   bookmarkNear,
   bookmarksOn,
+  likeOf,
   loadBookmarks,
+  placeOf,
   removeBookmark,
   setBookmarkNote,
   subscribeBookmarks,
@@ -53,5 +55,23 @@ describe("bookmarks", () => {
     expect(removeBookmark(b.id)).toEqual([]);
     expect(calls).toBe(4);
     off();
+  });
+
+  it("likes one frame of one camera, shown only on that camera's timeline", () => {
+    const camA = { catalog: "https://x.org/c.json", camera: "a", mode: "advanced", date: "2026-10-03" };
+    const a = placeOf(camA).search;
+    const b = placeOf({ catalog: "https://x.org/c.json", camera: "b" }).search;
+    expect(a).toBe("?catalog=https://x.org/c.json&camera=a");
+    const like = addBookmark(at("2026-10-03T19:30:12Z"), "A", "Síť", camA, { id: "20261003-193012", src: "https://x.org/a.webp" });
+    const moment = addBookmark(at("2026-10-03T19:30:00Z"), "Síť", undefined, { catalog: "https://x.org/c.json" });
+    expect(likeOf(loadBookmarks(), a, "20261003-193012")?.id).toBe(like.id);
+    expect(likeOf(loadBookmarks(), b, "20261003-193012")).toBeUndefined();
+    expect(likeOf(loadBookmarks(), a, undefined)).toBeUndefined();
+    // A like is not a marked moment.
+    expect(bookmarkNear(loadBookmarks(), like.t)?.id).toBe(moment.id);
+    expect(bookmarksOn(loadBookmarks(), "2026-10-03", [b]).map((x) => x.id)).toEqual([moment.id]);
+    expect(bookmarksOn(loadBookmarks(), "2026-10-03", [a, b]).map((x) => x.id)).toEqual([moment.id, like.id]);
+    // Reopens the camera at that frame.
+    expect(bookmarkHref(like)).toBe("?catalog=https://x.org/c.json&camera=a&date=2026-10-03&time=19:30:12");
   });
 });

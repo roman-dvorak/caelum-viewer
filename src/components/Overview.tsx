@@ -11,7 +11,8 @@ import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
 import { readParams, updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
-import { BookmarkButton, useBookmarkToggle } from "./BookmarkButton";
+import { BookmarkButton, LikeButton, useBookmarkToggle, useLikeToggle } from "./BookmarkButton";
+import { placeOf } from "../lib/bookmarks";
 import { CameraInfo } from "./CameraInfo";
 import { Icon } from "./Icon";
 import { LangSwitch } from "./LangSwitch";
@@ -80,6 +81,8 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
   const [now, setNow] = useState(Date.now);
   /** Time of day (HH:MM:SS) to show once the next day is chosen. */
   const pendingTime = useRef<string | undefined>(initial.time);
+  /** Once the next day is loaded, go to its first / last step (stepping across midnight). */
+  const pendingEdge = useRef<"first" | "last">(undefined);
 
   const setAtIndex = <T,>(set: React.Dispatch<React.SetStateAction<T[]>>, i: number, v: NoInfer<T>) =>
     set((old) => old.map((x, j) => (j === i ? v : x)));
@@ -135,10 +138,18 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       if (ctl.signal.aborted) return;
       // Cleared only now: an aborted run (a quick day change, StrictMode) must not lose it.
       pendingTime.current = undefined;
+      const edge = pendingEdge.current;
+      pendingEdge.current = undefined;
       if (live) return;
-      // No time asked for: start at the newest frame of any camera.
-      const newest = Math.max(...res.flatMap((r) => (r.status === "fulfilled" && r.value.length ? [r.value[r.value.length - 1].t] : [])));
-      if (Number.isFinite(newest)) setAt((cur) => cur ?? newest);
+      const lists = res.flatMap((r) => (r.status === "fulfilled" && r.value.length ? [r.value] : []));
+      if (edge === "first") {
+        const oldest = Math.min(...lists.map((l) => l[0].t));
+        if (Number.isFinite(oldest)) setAt(oldest);
+        return;
+      }
+      // No time asked for (or the end of the day): the newest frame of any camera.
+      const newest = Math.max(...lists.map((l) => l[l.length - 1].t));
+      if (Number.isFinite(newest)) setAt((cur) => (edge === "last" || cur === undefined ? newest : cur));
     });
     return () => ctl.abort();
   }, [archives, date]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -204,17 +215,28 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     setAt(time);
   }, []);
 
+  /**
+   * Moves by `delta` shared steps. A step past the last (first) one of the
+   * day goes on to the first (last) step of the next (previous) day with
+   * data; Home / End (±Infinity) stay within the day.
+   */
   const step = (delta: number) => {
+    const i = !slots.length ? -1 : cursor === undefined ? slots.length - 1 : nearestIndex(slots, cursor);
+    if (Number.isFinite(delta) && loaded === cameras.length) {
+      if (delta > 0 && i >= slots.length - 1 && nextDate) return changeDate(nextDate, "first");
+      if (delta < 0 && i <= 0 && prevDate) return changeDate(prevDate, "last");
+    }
     if (!slots.length) return;
-    const i = cursor === undefined ? slots.length - 1 : nearestIndex(slots, cursor);
     seek(slots[Math.min(slots.length - 1, Math.max(0, i + delta))].t);
   };
 
-  const changeDate = (next: string | undefined) => {
+  /** Opens day `next` at the time of day on screen, or at its first / last step. */
+  const changeDate = (next: string | undefined, edge?: "first" | "last") => {
     if (!next || next === date) return;
     setLive(false);
     setPlaying(false);
-    if (cursor !== undefined) pendingTime.current = utcTime(cursor);
+    pendingEdge.current = edge;
+    pendingTime.current = edge === "first" ? "00:00:00" : edge === "last" ? "23:59:59" : cursor !== undefined ? utcTime(cursor) : undefined;
     setDate(next);
   };
 
@@ -277,6 +299,10 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     ),
   );
 
+  /** Each camera's own view, which its liked frames belong to. */
+  const cameraParams = useMemo(() => cameras.map((c) => ({ ...initial, camera: c.id })), [cameras, initial]);
+  const likeSources = useMemo(() => cameraParams.map((p) => placeOf(p).search), [cameraParams]);
+
   const tiles: TileProps[] = cameras.map((camera, i) => {
     const f = shown[i];
     const src = archives[i].source;
@@ -288,6 +314,8 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       frame: f,
       src: f?.thumb ? src.url(f.thumb) : undefined,
       rawUrl: f?.raw ? src.url(f.raw) : undefined,
+      cameraParams: cameraParams[i],
+      catalogTitle: title ?? t("data.catalog"),
       metaUrl: f?.meta || f?.rawMeta ? src.url((f.meta ?? f.rawMeta)!) : undefined,
       loading: list === null,
       error: errors[i],
@@ -308,6 +336,9 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     params: () => ({ ...readParams(), camera: undefined }),
   });
 
+  const zoomedTile = zoomed === undefined ? undefined : tiles[zoomed];
+  const zoomedLike = useLikeToggle(likeShot(zoomedTile ?? tiles[0]));
+
   /** The previous / next camera in the enlarged view, wrapping around. */
   const stepZoomed = (delta: number) =>
     setZoomed((z) => (z === undefined ? z : (z + delta + cameras.length) % cameras.length));
@@ -324,6 +355,7 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       else if (e.key === " ") togglePlay();
       else if (e.key === "l") toggleLive();
       else if (e.key === "b") bookmark.toggle();
+      else if (e.key === "h" && zoomedTile) zoomedLike.toggle();
       else if (e.key === "ArrowUp" && zoomed !== undefined) stepZoomed(-1);
       else if (e.key === "ArrowDown" && zoomed !== undefined) stepZoomed(1);
       else if ((e.key === "+" || e.key === "=") && zoomed === undefined) resizeTiles(1);
@@ -392,6 +424,7 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
           count={cameras.length}
           onCamera={stepZoomed}
           bookmark={bookmark}
+          like={zoomedLike}
           bottom={bar.current?.offsetHeight ?? 0}
           onClose={() => setZoomed(undefined)}
         />
@@ -430,7 +463,7 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
         </div>
         {date && (
           // A plain time axis: frame ticks of several cameras would only be noise here.
-          <Timeline date={date} frames={NO_FRAMES} visible={NO_IDS} metaMap={NO_META} currentT={cursor} onSeek={seek} />
+          <Timeline date={date} frames={NO_FRAMES} visible={NO_IDS} metaMap={NO_META} currentT={cursor} onSeek={seek} likeSources={likeSources} />
         )}
       </footer>
     </div>
@@ -443,6 +476,9 @@ interface TileProps {
   src?: string;
   rawUrl?: string;
   metaUrl?: string;
+  /** The camera's own view, which a liked frame belongs to. */
+  cameraParams: ViewParams;
+  catalogTitle: string;
   loading: boolean;
   error?: string;
   /** The camera has frames this day, but none within an hour of the shared time. */
@@ -457,9 +493,20 @@ interface TileProps {
   onOpen: () => void;
 }
 
+/** What `useLikeToggle` needs for the frame a tile shows. */
+function likeShot(p: TileProps | undefined) {
+  return {
+    frame: p?.frame && { id: p.frame.id, t: p.frame.t, src: p.src },
+    label: p?.camera.name ?? "",
+    catalog: p?.catalogTitle,
+    params: p?.cameraParams ?? {},
+  };
+}
+
 function Tile(p: TileProps & { onZoom: () => void }) {
   const { camera, src, error, far, live, stale, lastT, now, onOpen, onZoom } = p;
   const img = useLoadedImage(src);
+  const like = useLikeToggle(likeShot(p));
   return (
     <article className={`cam-tile${far ? " far" : ""}${live ? " is-live" : ""}`}>
       <div className="cam-tile-img">
@@ -485,6 +532,7 @@ function Tile(p: TileProps & { onZoom: () => void }) {
           )}
           {error && <span className="cam-tile-error" title={error}>{error}</span>}
         </div>
+        <LikeButton {...like} disabled={!p.frame} />
         <CameraInfo camera={camera} />
         <button type="button" className="btn" onClick={onOpen}>
           {t("overview.open")}
@@ -501,13 +549,14 @@ interface LightboxProps extends TileProps {
   /** Shows the previous (−1) / next (+1) camera. */
   onCamera: (delta: number) => void;
   bookmark: ReturnType<typeof useBookmarkToggle>;
+  like: ReturnType<typeof useLikeToggle>;
   bottom: number;
   onClose: () => void;
 }
 
 /** Full-page view of one camera; follows the shared time like its tile. */
 function Lightbox(p: LightboxProps) {
-  const { camera, frame, src, rawUrl, metaUrl, onOpen, onClose, bottom, index, count, onCamera, bookmark } = p;
+  const { camera, frame, src, rawUrl, metaUrl, onOpen, onClose, bottom, index, count, onCamera, bookmark, like } = p;
   const img = useLoadedImage(src);
   const fileName = (url: string) => `${slugName(camera.name)}_${frame!.id}.${url.split(/[?#]/)[0].split(".").pop()}`;
   return (
@@ -529,6 +578,7 @@ function Lightbox(p: LightboxProps) {
               </button>
             </span>
           )}
+          <LikeButton {...like} disabled={!frame} />
           <BookmarkButton {...bookmark} disabled={!frame} />
           {src && frame && (
             <button type="button" className="btn" onClick={() => downloadUrl(src, fileName(src))} title={t("overview.downloadPreview")}>

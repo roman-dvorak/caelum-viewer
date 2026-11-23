@@ -15,18 +15,21 @@ interface Props {
   onSeek: (t: number) => void;
   /** Shift+drag marks a section; without it the timeline only seeks. */
   onRange?: (from: number, to: number) => void;
+  /** Cameras (see `placeOf`) whose liked frames are drawn; marked moments are drawn always. */
+  likeSources?: readonly string[];
 }
 
 const DAY = 86_400_000;
 const HEIGHT = 56;
 /** A pointer this close to a bookmark mark (CSS px) is on it. */
 const MARK_HIT_PX = 5;
+const NO_SOURCES: readonly string[] = [];
 
 /** 24 h UTC strip: one tick per frame (colored by sky period, dimmed when
  *  filtered out), the bookmarks of the day (from any camera), the current
  *  frame marker and the selected section; click or drag to seek (a click on a
  *  bookmark goes to it), Shift+drag to select a section. */
-export function Timeline({ date, frames, visible, metaMap, currentT, range, onSeek, onRange }: Props) {
+export function Timeline({ date, frames, visible, metaMap, currentT, range, onSeek, onRange, likeSources = NO_SOURCES }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<{ x: number; t: number; mark?: Bookmark } | null>(null);
@@ -34,7 +37,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
   const dragging = useRef<false | "seek" | { anchor: number }>(false);
   const start = dayStart(date);
   const all = useBookmarks();
-  const marks = useMemo(() => bookmarksOn(all, date), [all, date]);
+  const marks = useMemo(() => bookmarksOn(all, date, likeSources), [all, date, likeSources]);
 
   useEffect(() => {
     const el = canvas.current!.parentElement!;
@@ -57,6 +60,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
     const accent = css.getPropertyValue("--accent").trim() || "#5a8ee8";
     const amber = css.getPropertyValue("--amber").trim() || "#e8a13a";
     const bookmark = css.getPropertyValue("--bookmark").trim() || "#2ecc9a";
+    const like = css.getPropertyValue("--like").trim() || "#f06a9a";
     g.clearRect(0, 0, width, HEIGHT);
 
     const barTop = 6;
@@ -75,18 +79,22 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
     }
     g.globalAlpha = 1;
 
-    // Bookmarks: a line through the strip with a flag below it.
-    g.fillStyle = bookmark;
+    // Marked moments: a line through the strip with a flag below it;
+    // liked frames: a line with a dot below it.
     for (const b of marks) {
       const x = Math.round(((b.t - start) / DAY) * width);
+      g.fillStyle = b.frame ? like : bookmark;
       g.globalAlpha = 0.22;
       g.fillRect(x - 3, barTop, 7, barH);
       g.globalAlpha = 1;
       g.fillRect(x - 1, barTop, 2, barH);
       g.beginPath();
-      g.moveTo(x - 5, barTop + barH + 7);
-      g.lineTo(x + 5, barTop + barH + 7);
-      g.lineTo(x, barTop + barH);
+      if (b.frame) g.arc(x, barTop + barH + 3.5, 3.5, 0, Math.PI * 2);
+      else {
+        g.moveTo(x - 5, barTop + barH + 7);
+        g.lineTo(x + 5, barTop + barH + 7);
+        g.lineTo(x, barTop + barH);
+      }
       g.fill();
     }
 
@@ -162,11 +170,12 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
         onPointerLeave={() => setHover(null)}
       />
       {hover && (
-        <div className={`timeline-hover${hover.mark ? " is-mark" : ""}`} style={{ left: hover.x }}>
+        <div className={`timeline-hover${hover.mark ? (hover.mark.frame ? " is-like" : " is-mark") : ""}`} style={{ left: hover.x }}>
           {hover.mark ? (
             <>
-              <span className="timeline-mark-dot" />
+              <span className={hover.mark.frame ? "timeline-like-dot" : "timeline-mark-dot"} />
               {utcTime(hover.mark.t)}
+              {hover.mark.frame && likeSources.length > 1 && <span className="timeline-mark-note"> · {hover.mark.label}</span>}
               {hover.mark.note && <span className="timeline-mark-note"> · {hover.mark.note}</span>}
             </>
           ) : (
