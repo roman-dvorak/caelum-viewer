@@ -82,7 +82,8 @@ code { display: block; font: 12px/1.5 var(--font-mono); color: var(--ink-muted);
 .topbar button, .topbar select, .topbar input, .topbar .btn { height: var(--ctl-h); padding: 0 12px; font-size: 13px; line-height: 1; }
 .topbar button, .topbar .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
 .topbar button:has(> .icon) { padding: 0; width: var(--ctl-h); }
-.topbar .overview-btn { width: auto; padding: 0 12px; }
+/* `button.` so it outweighs the icon-button rule above (`:has(> .icon)` counts as a class) */
+.topbar button.overview-btn { width: auto; padding: 0 12px; }
 .topbar .topbar-link { display: inline-flex; align-items: center; height: var(--ctl-h); padding: 0 4px; }
 .brand { display: flex; align-items: center; gap: 8px; font: 600 16px/1 var(--font-display); letter-spacing: -0.01em; }
 .brand img { width: 22px; height: 22px; }
@@ -340,7 +341,6 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
 .recent li.pinned + li:not(.pinned) { border-top-color: var(--border); }
 
 /* overview: all cameras of a catalog */
-.topbar .overview-btn { display: inline-flex; align-items: center; gap: 6px; }
 .overview-desc { margin: 12px 16px 0; color: var(--ink-muted); max-width: 900px; }
 .tiles { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; padding: 16px; align-content: start; }
 .cam-tile { display: flex; flex-direction: column; background: var(--surface-200); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); overflow: hidden; min-width: 0; }
@@ -389,9 +389,13 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; text-align: cent
   .topmenu-items .seg-switch, .topmenu-items .lang-switch { align-self: flex-start; }
   .topbar .camera-name { margin-right: auto; }
 }
-@media (max-width: 900px) {
-  /* icon-only "all cameras" button and a shrinkable camera picker, so brand, both and ⋯ share one row */
+/* icon-only "all cameras" button unless the bar has room for its label (the ⋯ menu only folds below 900 px) */
+@media (max-width: 1400px) {
   .topbar .overview-label { display: none; }
+  .topbar button.overview-btn { width: var(--ctl-h); padding: 0; }
+}
+@media (max-width: 900px) {
+  /* a shrinkable camera picker, so brand, the "all cameras" button, the picker and ⋯ share one row */
   .topbar .camera-select { flex: 1 1 0; min-width: 0; max-width: 220px; padding: 0 6px; font-size: 13px; text-overflow: ellipsis; }
   .brand { font-size: 15px; }
   .brand img { width: 20px; height: 20px; }
