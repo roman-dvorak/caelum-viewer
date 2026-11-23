@@ -16,8 +16,14 @@ developed by [AstroMeters](https://astrometers.eu/).
   live); a camera with no frame within an hour of that time shows none; the magnifier (or a
   click on the image) enlarges a camera over the whole page — Esc or a click closes it; each
   tile opens its camera in the full viewer at the frame it shows, and “All cameras” in the
-  top bar goes back
+  top bar goes back; in the enlarged view `↑/↓` (or the arrow buttons) switch cameras and
+  the preview, RAW and JSON of the shown frame can be downloaded; the preview size is a
+  fraction of the page width (auto, 1/1 … 1/8, `+`/`−`), remembered in the browser
 - 24 h UTC timeline coloured by sky period (day / twilights / night); click and drag to seek
+- bookmarks — the star button (or `B`) marks the moment on screen; the mark shows on the
+  timeline of that day in every camera and catalog (hover shows its description, a click goes
+  to it), and the start screen lists them all with an editable description, each opening the
+  view it was marked in. Kept in the browser's localStorage
 - frame detail with zoom (wheel, +/−), drag to pan and fullscreen
 - overlay (time, exposure, gain, period, Sun, Moon) and a metadata table
 - download of the original RAW (DNG), links to the preview and the JSON metadata
@@ -49,9 +55,10 @@ developed by [AstroMeters](https://astrometers.eu/).
 - installable as an app (PWA): “Install” in Chrome / Edge, “Add to Home Screen” on iOS and
   Android; the app itself opens offline, camera data is always loaded live
 
-Keys: `←/→` (with Shift by 10; in the overview by one shared step), `Home/End`, Space = playback, `F` = fullscreen,
-`+/−/0` = zoom, `L` = live, `O` = overlay, `[` / `]` = section start / end at the current
-frame, `Esc` = cancel the section.
+Keys: `←/→` (with Shift by 10; in the overview by one shared step), `↑/↓` = previous / next
+camera of the catalog (in the overview while a camera is enlarged), `Home/End`, Space = playback,
+`F` = fullscreen, `+/−/0` = zoom (in the overview: preview size), `L` = live, `O` = overlay,
+`B` = bookmark, `[` / `]` = section start / end at the current frame, `Esc` = cancel the section.
 
 ## Usage
 

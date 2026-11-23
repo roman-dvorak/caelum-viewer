@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Frame, FrameMeta } from "../data/archive";
+import { bookmarksOn, useBookmarks, type Bookmark } from "../lib/bookmarks";
 import { periodColor, skyPeriod } from "../lib/metadata";
 import { dayStart, utcTime } from "../lib/time";
 
@@ -18,17 +19,22 @@ interface Props {
 
 const DAY = 86_400_000;
 const HEIGHT = 56;
+/** A pointer this close to a bookmark mark (CSS px) is on it. */
+const MARK_HIT_PX = 5;
 
 /** 24 h UTC strip: one tick per frame (colored by sky period, dimmed when
- *  filtered out), the current frame marker and the selected section; click
- *  or drag to seek, Shift+drag to select a section. */
+ *  filtered out), the bookmarks of the day (from any camera), the current
+ *  frame marker and the selected section; click or drag to seek (a click on a
+ *  bookmark goes to it), Shift+drag to select a section. */
 export function Timeline({ date, frames, visible, metaMap, currentT, range, onSeek, onRange }: Props) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(0);
-  const [hover, setHover] = useState<{ x: number; t: number } | null>(null);
+  const [hover, setHover] = useState<{ x: number; t: number; mark?: Bookmark } | null>(null);
   /** Seeking, or the anchor time of a section being drawn. */
   const dragging = useRef<false | "seek" | { anchor: number }>(false);
   const start = dayStart(date);
+  const all = useBookmarks();
+  const marks = useMemo(() => bookmarksOn(all, date), [all, date]);
 
   useEffect(() => {
     const el = canvas.current!.parentElement!;
@@ -50,6 +56,7 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
     const line = css.getPropertyValue("--line").trim() || "#2a3a52";
     const accent = css.getPropertyValue("--accent").trim() || "#5a8ee8";
     const amber = css.getPropertyValue("--amber").trim() || "#e8a13a";
+    const bookmark = css.getPropertyValue("--bookmark").trim() || "#2ecc9a";
     g.clearRect(0, 0, width, HEIGHT);
 
     const barTop = 6;
@@ -67,6 +74,21 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
       g.fillRect(Math.floor(x), barTop, Math.max(1, width / 1440), barH);
     }
     g.globalAlpha = 1;
+
+    // Bookmarks: a line through the strip with a flag below it.
+    g.fillStyle = bookmark;
+    for (const b of marks) {
+      const x = Math.round(((b.t - start) / DAY) * width);
+      g.globalAlpha = 0.22;
+      g.fillRect(x - 3, barTop, 7, barH);
+      g.globalAlpha = 1;
+      g.fillRect(x - 1, barTop, 2, barH);
+      g.beginPath();
+      g.moveTo(x - 5, barTop + barH + 7);
+      g.lineTo(x + 5, barTop + barH + 7);
+      g.lineTo(x, barTop + barH);
+      g.fill();
+    }
 
     if (range) {
       const x0 = ((range.from - start) / DAY) * width;
@@ -100,12 +122,19 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
       g.lineTo(x, 7);
       g.fill();
     }
-  }, [width, frames, visible, metaMap, currentT, range, start]);
+  }, [width, frames, visible, metaMap, currentT, range, start, marks]);
 
+  /** Time under the pointer, and the bookmark there if the pointer is on one. */
   const timeAt = (clientX: number) => {
     const r = canvas.current!.getBoundingClientRect();
     const x = Math.min(Math.max(clientX - r.left, 0), r.width);
-    return { x, t: start + (x / r.width) * DAY };
+    let mark: Bookmark | undefined;
+    let best = MARK_HIT_PX;
+    for (const b of marks) {
+      const d = Math.abs(((b.t - start) / DAY) * r.width - x);
+      if (d <= best) [mark, best] = [b, d];
+    }
+    return { x, t: start + (x / r.width) * DAY, mark };
   };
 
   return (
@@ -115,26 +144,34 @@ export function Timeline({ date, frames, visible, metaMap, currentT, range, onSe
         style={{ width: "100%", height: HEIGHT }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
-          const at = timeAt(e.clientX).t;
-          if (e.shiftKey && onRange) dragging.current = { anchor: at };
+          const h = timeAt(e.clientX);
+          if (e.shiftKey && onRange) dragging.current = { anchor: h.t };
           else {
             dragging.current = "seek";
-            onSeek(at);
+            onSeek(h.mark?.t ?? h.t);
           }
         }}
         onPointerMove={(e) => {
           const h = timeAt(e.clientX);
           setHover(h);
           const d = dragging.current;
-          if (d === "seek") onSeek(h.t);
+          if (d === "seek") onSeek(h.mark?.t ?? h.t);
           else if (d && Math.abs(h.t - d.anchor) > 60_000) onRange?.(Math.min(d.anchor, h.t), Math.max(d.anchor, h.t));
         }}
         onPointerUp={() => (dragging.current = false)}
         onPointerLeave={() => setHover(null)}
       />
       {hover && (
-        <div className="timeline-hover" style={{ left: hover.x }}>
-          {utcTime(hover.t).slice(0, 5)}
+        <div className={`timeline-hover${hover.mark ? " is-mark" : ""}`} style={{ left: hover.x }}>
+          {hover.mark ? (
+            <>
+              <span className="timeline-mark-dot" />
+              {utcTime(hover.mark.t)}
+              {hover.mark.note && <span className="timeline-mark-note"> · {hover.mark.note}</span>}
+            </>
+          ) : (
+            utcTime(hover.t).slice(0, 5)
+          )}
         </div>
       )}
     </div>

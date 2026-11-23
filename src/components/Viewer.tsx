@@ -8,8 +8,9 @@ import { useMetadata, usePreload, useSkySetup } from "../lib/hooks";
 import { DEFAULT_CHART_FIELDS, KNOWN_FIELDS, numericFields } from "../lib/metadata";
 import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
-import { updateParams, type ViewParams } from "../lib/urlState";
+import { readParams, updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
+import { BookmarkButton, useBookmarkToggle } from "./BookmarkButton";
 import { CameraInfo } from "./CameraInfo";
 import { Charts } from "./Charts";
 import { ExportPanel } from "./ExportPanel";
@@ -327,6 +328,20 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
     setPlaying((p) => !p);
   };
 
+  const bookmark = useBookmarkToggle({
+    at: current?.t,
+    label: camera.name,
+    catalog: fromCatalog ? (title ?? t("data.catalog")) : undefined,
+    params: () => ({ ...readParams(), camera: fromCatalog ? cameraId : undefined }),
+  });
+
+  /** The previous / next camera of the catalog, wrapping around. */
+  const stepCamera = (delta: number) => {
+    if (cameras.length < 2) return;
+    const i = cameras.findIndex((c) => c.id === cameraId);
+    changeCamera(cameras[(i + delta + cameras.length) % cameras.length].id);
+  };
+
   const prevDate = dates && date ? [...dates].reverse().find((d) => d < date) : undefined;
   const nextDate = dates && date ? dates.find((d) => d > date) : undefined;
 
@@ -370,6 +385,9 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
       else if (e.key === " ") togglePlay();
       else if (e.key === "l") toggleLive();
       else if (e.key === "o") setOverlay((o) => !o);
+      else if (e.key === "b" && !e.ctrlKey && !e.metaKey) bookmark.toggle();
+      else if (e.key === "ArrowUp" && cameras.length > 1) stepCamera(-1);
+      else if (e.key === "ArrowDown" && cameras.length > 1) stepCamera(1);
       else if (e.key === "[" && !simple) setRangeEdge("from");
       else if (e.key === "]" && !simple) setRangeEdge("to");
       else if (e.key === "Escape" && range) setRange(null);
@@ -530,6 +548,7 @@ export function Viewer({ cameras, title, fromCatalog, initial, onOverview }: Pro
               {current ? `${utcTime(current.t)} UTC` : "—"}
               <span className="muted"> · {currentIndex + 1}/{visible.length}</span>
             </span>
+            <BookmarkButton {...bookmark} disabled={!current} />
             {!simple && (
               <span className="range-tools">
                 <button onClick={() => setRangeEdge("from")} title={t("range.start")} disabled={!current}>[</button>

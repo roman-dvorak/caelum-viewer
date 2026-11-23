@@ -43,14 +43,21 @@ function save(list: RecentSource[]): RecentSource[] {
 }
 
 /**
+ * The source part of a view — its query string without the view position
+ * (date / time / section / live) — and what kind of source it is.
+ */
+export function sourceOf(params: ViewParams): { search: string; kind: string } {
+  const { date: _d, time: _t, from: _f, to: _to, live: _l, ...rest } = params;
+  return { search: buildSearch(rest), kind: rest.catalog ? (rest.camera ? "catalog" : "group") : (rest.type ?? "") };
+}
+
+/**
  * Records the camera being viewed; `params` must already name the camera for
  * catalog sources. A catalog without `camera` is its overview of all cameras.
  */
 export function rememberCamera(label: string, catalog: string | undefined, params: ViewParams = readParams()): void {
-  const { date: _d, time: _t, from: _f, to: _to, live: _l, ...rest } = params;
-  const search = buildSearch(rest);
+  const { search, kind } = sourceOf(params);
   if (!search) return;
-  const kind = rest.catalog ? (rest.camera ? "catalog" : "group") : (rest.type ?? "");
   const entry: RecentSource = { label, catalog, search, kind, at: Date.now() };
   const list = loadRecent();
   const old = list.find((r) => r.search === search);

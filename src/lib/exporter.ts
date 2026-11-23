@@ -49,10 +49,29 @@ export function canEncodeVideo(): boolean {
 
 /** `{base}_{date}_{from}-{to}` from the first and last frame. */
 export function exportName(cameraName: string, frames: Frame[]): string {
-  const slug = cameraName.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "") || "camera";
   const hms = (t: number) => utcTime(t).replaceAll(":", "");
   const first = frames[0].t;
-  return `${slug}_${utcDate(first)}_${hms(first)}-${hms(frames[frames.length - 1].t)}`;
+  return `${slugName(cameraName)}_${utcDate(first)}_${hms(first)}-${hms(frames[frames.length - 1].t)}`;
+}
+
+/** Camera name usable in a file name: ASCII letters, digits, `_` and `-`. */
+export function slugName(cameraName: string): string {
+  return cameraName.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "") || "camera";
+}
+
+/**
+ * Saves the file at `url` as `filename`. The data lives on another origin,
+ * where `<a download>` is ignored, so it is fetched first (the sources allow
+ * CORS); when that fails, the file opens in a new tab instead.
+ */
+export async function downloadUrl(url: string, filename: string): Promise<void> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    saveBlob(await res.blob(), filename);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
 }
 
 export function saveBlob(blob: Blob, filename: string): void {

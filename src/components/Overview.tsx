@@ -4,12 +4,14 @@ import { createDataSource } from "../data/factory";
 import type { CameraConfig } from "../data/types";
 import { VIEWER_DOCS_URL } from "../lib/brand";
 import { useLoadedImage, usePreload } from "../lib/hooks";
+import { downloadUrl, slugName } from "../lib/exporter";
 import { ago, t, tn } from "../lib/i18n";
 import { timeSlots } from "../lib/overview";
 import { rememberCamera } from "../lib/recent";
 import { liveStaleness, nearestIndex, parseTimeOnDate, todayUtc, utcDate, utcTime } from "../lib/time";
-import { updateParams, type ViewParams } from "../lib/urlState";
+import { readParams, updateParams, type ViewParams } from "../lib/urlState";
 import { AboutDialog } from "./AboutDialog";
+import { BookmarkButton, useBookmarkToggle } from "./BookmarkButton";
 import { CameraInfo } from "./CameraInfo";
 import { Icon } from "./Icon";
 import { LangSwitch } from "./LangSwitch";
@@ -36,6 +38,19 @@ const NEAR_MS = 90_000;
 const NO_META = new Map<string, FrameMeta>();
 const NO_FRAMES: Frame[] = [];
 const NO_IDS = new Set<string>();
+/** Preview sizes as columns across the page (1/n of its width); 0 = as many as fit. */
+const COLUMNS = [0, 1, 2, 3, 4, 5, 6, 8];
+const COLUMNS_KEY = "caelum-viewer.tileColumns";
+
+function loadColumns(): number {
+  try {
+    const n = Number(localStorage.getItem(COLUMNS_KEY));
+    if (COLUMNS.includes(n)) return n;
+  } catch {
+    /* storage unavailable */
+  }
+  return 0;
+}
 
 /**
  * All cameras of a catalog side by side, each showing its frame nearest to
@@ -59,6 +74,9 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
   /** Camera shown enlarged over the page, by index. */
   const [zoomed, setZoomed] = useState<number>();
   const bar = useRef<HTMLElement>(null);
+  const grid = useRef<HTMLElement>(null);
+  /** Size of the previews: columns across the page, 0 = automatic. */
+  const [columns, setColumnsState] = useState(loadColumns);
   const [now, setNow] = useState(Date.now);
   /** Time of day (HH:MM:SS) to show once the next day is chosen. */
   const pendingTime = useRef<string | undefined>(initial.time);
@@ -200,6 +218,22 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     setDate(next);
   };
 
+  const setColumns = (n: number) => {
+    setColumnsState(n);
+    try {
+      localStorage.setItem(COLUMNS_KEY, String(n));
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  /** Bigger (+1) or smaller (−1) previews: one column fewer or more, starting from what fits now. */
+  const resizeTiles = (dir: 1 | -1) => {
+    const fixed = COLUMNS.filter((n) => n > 0);
+    const now = columns || (grid.current ? getComputedStyle(grid.current).gridTemplateColumns.split(" ").length : 3);
+    const next = dir > 0 ? [...fixed].reverse().find((n) => n < now) : fixed.find((n) => n > now);
+    if (next) setColumns(next);
+  };
+
   const toggleLive = () => setLive((l) => !l);
   const togglePlay = () => {
     setLive(false);
@@ -245,13 +279,16 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
 
   const tiles: TileProps[] = cameras.map((camera, i) => {
     const f = shown[i];
+    const src = archives[i].source;
     const list = frames[i];
     const offset = f && at !== undefined ? f.t - at : 0;
     const lastT = list?.at(-1)?.t;
     return {
       camera,
       frame: f,
-      src: f?.thumb ? archives[i].source.url(f.thumb) : undefined,
+      src: f?.thumb ? src.url(f.thumb) : undefined,
+      rawUrl: f?.raw ? src.url(f.raw) : undefined,
+      metaUrl: f?.meta || f?.rawMeta ? src.url((f.meta ?? f.rawMeta)!) : undefined,
       loading: list === null,
       error: errors[i],
       noneNear: !f && !!nearest[i],
@@ -265,9 +302,20 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
     };
   });
 
+  const bookmark = useBookmarkToggle({
+    at: cursor,
+    label: title ?? t("data.catalog"),
+    params: () => ({ ...readParams(), camera: undefined }),
+  });
+
+  /** The previous / next camera in the enlarged view, wrapping around. */
+  const stepZoomed = (delta: number) =>
+    setZoomed((z) => (z === undefined ? z : (z + delta + cameras.length) % cameras.length));
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input, select, textarea")) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       const n = e.shiftKey ? 10 : 1;
       if (e.key === "ArrowRight") step(n);
       else if (e.key === "ArrowLeft") step(-n);
@@ -275,6 +323,11 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
       else if (e.key === "End") step(Infinity);
       else if (e.key === " ") togglePlay();
       else if (e.key === "l") toggleLive();
+      else if (e.key === "b") bookmark.toggle();
+      else if (e.key === "ArrowUp" && zoomed !== undefined) stepZoomed(-1);
+      else if (e.key === "ArrowDown" && zoomed !== undefined) stepZoomed(1);
+      else if ((e.key === "+" || e.key === "=") && zoomed === undefined) resizeTiles(1);
+      else if (e.key === "-" && zoomed === undefined) resizeTiles(-1);
       else if (e.key === "Escape" && zoomed !== undefined) setZoomed(undefined);
       else return;
       e.preventDefault();
@@ -323,13 +376,25 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
 
       {description && <p className="overview-desc">{description}</p>}
 
-      <main className="tiles">
+      <main
+        className="tiles"
+        ref={grid}
+        style={columns ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` } : undefined}
+      >
         {tiles.map((p, i) => (
           <Tile key={p.camera.id} {...p} onZoom={() => setZoomed(i)} />
         ))}
       </main>
       {zoomed !== undefined && tiles[zoomed] && (
-        <Lightbox {...tiles[zoomed]} bottom={bar.current?.offsetHeight ?? 0} onClose={() => setZoomed(undefined)} />
+        <Lightbox
+          {...tiles[zoomed]}
+          index={zoomed}
+          count={cameras.length}
+          onCamera={stepZoomed}
+          bookmark={bookmark}
+          bottom={bar.current?.offsetHeight ?? 0}
+          onClose={() => setZoomed(undefined)}
+        />
       )}
 
       <footer className="overview-bar" ref={bar}>
@@ -351,6 +416,17 @@ export function Overview({ cameras, title, description, initial, onOpen }: Props
           <span className="pos">
             {live ? t("overview.newest") : cursor !== undefined ? `${utcTime(cursor)} UTC` : "—"}
           </span>
+          <BookmarkButton {...bookmark} disabled={cursor === undefined} />
+          <label className="small tile-size" title={t("overview.sizeTitle")}>
+            <Icon name="grid" />
+            <select value={columns} onChange={(e) => setColumns(Number(e.target.value))} aria-label={t("overview.sizeTitle")}>
+              {COLUMNS.map((n) => (
+                <option key={n} value={n}>
+                  {n ? `1/${n}` : t("overview.sizeAuto")}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         {date && (
           // A plain time axis: frame ticks of several cameras would only be noise here.
@@ -365,6 +441,8 @@ interface TileProps {
   camera: CameraConfig;
   frame?: Frame;
   src?: string;
+  rawUrl?: string;
+  metaUrl?: string;
   loading: boolean;
   error?: string;
   /** The camera has frames this day, but none within an hour of the shared time. */
@@ -416,16 +494,57 @@ function Tile(p: TileProps & { onZoom: () => void }) {
   );
 }
 
+interface LightboxProps extends TileProps {
+  /** Position of the camera in the catalog, and how many there are. */
+  index: number;
+  count: number;
+  /** Shows the previous (−1) / next (+1) camera. */
+  onCamera: (delta: number) => void;
+  bookmark: ReturnType<typeof useBookmarkToggle>;
+  bottom: number;
+  onClose: () => void;
+}
+
 /** Full-page view of one camera; follows the shared time like its tile. */
-function Lightbox(p: TileProps & { bottom: number; onClose: () => void }) {
-  const { camera, src, onOpen, onClose, bottom } = p;
+function Lightbox(p: LightboxProps) {
+  const { camera, frame, src, rawUrl, metaUrl, onOpen, onClose, bottom, index, count, onCamera, bookmark } = p;
   const img = useLoadedImage(src);
+  const fileName = (url: string) => `${slugName(camera.name)}_${frame!.id}.${url.split(/[?#]/)[0].split(".").pop()}`;
   return (
     <div className="lightbox" style={{ bottom }} role="dialog" aria-modal="true" aria-label={camera.name} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="lightbox-head">
         <strong className="cam-tile-name">{camera.name}</strong>
         <FrameTime {...p} />
         <span className="lightbox-tools">
+          {count > 1 && (
+            <span className="lightbox-cams">
+              <button type="button" onClick={() => onCamera(-1)} title={t("overview.prevCamera")}>
+                <Icon name="up" />
+              </button>
+              <span className="muted small">
+                {index + 1}/{count}
+              </span>
+              <button type="button" onClick={() => onCamera(1)} title={t("overview.nextCamera")}>
+                <Icon name="down" />
+              </button>
+            </span>
+          )}
+          <BookmarkButton {...bookmark} disabled={!frame} />
+          {src && frame && (
+            <button type="button" className="btn" onClick={() => downloadUrl(src, fileName(src))} title={t("overview.downloadPreview")}>
+              <Icon name="download" /> {t("meta.preview")}
+            </button>
+          )}
+          {rawUrl && (
+            <a className="btn" href={rawUrl} download title={t("overview.downloadRaw")}>
+              <Icon name="download" /> RAW
+            </a>
+          )}
+          {metaUrl && frame && (
+            <button type="button" className="btn" onClick={() => downloadUrl(metaUrl, fileName(metaUrl))} title={t("overview.downloadJson")}>
+              <Icon name="download" /> JSON
+            </button>
+          )}
           <button type="button" className="btn" onClick={onOpen}>
             {t("overview.open")}
           </button>
